@@ -1,0 +1,10 @@
+road\0001.jpg 20
+road\0002.jpg 8
+road\0003.jpg 4
+road\0004.jpg 2
+road\0005.jpg 1
+road\0006.jpg 0.5
+road\0007.jpg 0.25
+road\0008.jpg 0.125
+road\0008.jpg 0.05
+
