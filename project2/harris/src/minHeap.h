@@ -6,8 +6,8 @@
 
 class PRObject{
 public:
-    PRObject() {}
-    PRObject(int row, int col, int r) : _x(row), _y(col), _r(r) {}
+    PRObject() { _x = -1; _y = -1; _r = -1; }
+    PRObject(int row, int col, double r) : _x(row), _y(col), _r(r) {}
     ~PRObject() {}
 
     friend bool operator < (const PRObject& p1, const PRObject p2) { return (p1._r < p2._r); }
@@ -21,7 +21,7 @@ public:
 private:
     int _x;
     int _y;
-    int _r;
+    double _r;
 };
 
 template <class Data>

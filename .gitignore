@@ -1,0 +1,7 @@
+*.o
+*.DS_store
+*bin*
+*.depend*
+*.extheader*
+*test*
+*.swp
