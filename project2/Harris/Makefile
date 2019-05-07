@@ -1,4 +1,4 @@
-EXEC = detector
+EXEC = HarrisDetector
 DIRS = bin
 
 
@@ -16,6 +16,7 @@ directory:
 		fi; \
 	done
 	@cd src; make -f make.src --no-print-directory EXEC=$(EXEC)
+	@ln -fs bin/$(EXEC) $(EXEC)
 
 .PHONY: clean
 
