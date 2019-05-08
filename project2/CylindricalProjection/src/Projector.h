@@ -4,11 +4,14 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <math.h>
+#include <string>
+
+using std::string;
 
 class Projector
 {
 public:
-    Projector(char* image, char* output, int f) { _image_name = image; _output_name = output; _focal = f; }
+    Projector(string image, string output, double f) { _image_name = image; _output_name = output; _focal = f; }
     ~Projector() {}
 
     void RUN();
@@ -42,13 +45,13 @@ public:
     }
 
 private:
-    char*       _image_name;
-    char*       _output_name;
+    string      _image_name;
+    string      _output_name;
 
     cv::Mat     _image;
     cv::Mat     _result;
 
-    int         _focal;
+    double      _focal;
 
     int       _row_ref;
     int       _col_ref;
