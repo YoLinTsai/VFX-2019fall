@@ -1,4 +1,4 @@
-EXEC = CylindricalProjector
+EXEC = Blender
 DIRS = bin
 
 

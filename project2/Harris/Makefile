@@ -22,3 +22,4 @@ directory:
 
 clean:
 	@cd src; make -f make.src --no-print-directory EXEC=$(EXEC) clean;
+	@rm $(EXEC)
