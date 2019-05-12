@@ -1,6 +1,8 @@
 #include "Harris.h"
 #include <iostream>
 
+#define HARRIS_WINDOW 7
+
 void HarrisFeatureDetector::read_image(char* filename) {
     std::cerr << std::endl << "[ Reading image \"" << filename << "\" ]" << std::endl;
     _image_rgb = cv::imread(filename, 1);
@@ -23,6 +25,8 @@ void HarrisFeatureDetector::run() {
 }
 
 void HarrisFeatureDetector::show_images() {
+    this->show_result();
+    return;
     cv::namedWindow("dx", cv::WINDOW_AUTOSIZE);
     cv::namedWindow("dy", cv::WINDOW_AUTOSIZE);
     cv::namedWindow("gray", cv::WINDOW_AUTOSIZE);
@@ -31,7 +35,6 @@ void HarrisFeatureDetector::show_images() {
     cv::imshow("gray", _image_gray);
     std::cout << "\t> press any key to show result" << std::endl;
     cv::waitKey(0);
-    this->show_result();
 }
 
 void HarrisFeatureDetector::compute_derivatives() {
@@ -104,8 +107,8 @@ void HarrisFeatureDetector::compute_response() {
 void HarrisFeatureDetector::compute_local_max_R() {
     std::cerr << std::endl << "[ Searching for local max in response ]" << std::endl;
     // local maximun detector's window set to 5
-    int offset      = 5;
-    int window_size = 5;
+    int offset      = HARRIS_WINDOW;
+    int window_size = HARRIS_WINDOW;
     int half_width  = window_size >> 1;
     for (int row = half_width+offset; row < _image_rgb.rows-half_width-offset; ++row) {
         for (int col = half_width+offset; col < _image_rgb.cols-half_width-offset; ++col) {
