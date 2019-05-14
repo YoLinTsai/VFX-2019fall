@@ -3,6 +3,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <string>
+#include <iostream>
 
 using std::string;
 
@@ -26,6 +27,10 @@ struct BBox
 
     bool contains(const int& x, const int& y) const { return ( _lx <= x && x <= _ux && _ly <= y && y <= _uy); }
 
+    void print() const {
+        std::cout << "(" << _lx << ", " << _ly << ") (" << _ux << ", " << _uy << ")" << std::endl;
+    }
+
     int _lx;
     int _ly;
     int _ux;
@@ -46,9 +51,14 @@ public:
 private:
     cv::Mat _image1;
     cv::Mat _image2;
+    cv::Mat _origin_img1;
+    cv::Mat _origin_img2;
     cv::Mat _result;
     BBox    _bbox1;
     BBox    _bbox2;
+
+    int _1to2x;
+    int _1to2y;
 };
 
 #endif /* __BLENDER_H__ */

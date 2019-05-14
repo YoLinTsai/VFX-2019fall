@@ -36,12 +36,35 @@ void Blender::read(string image1, string image2, string bbox_file) {
         std::swap(_bbox1, _bbox2);
         std::swap(_image1, _image2);
     }
+    _1to2x = _bbox2.GetLowerLeftX() - _bbox1.GetLowerLeftX();
+    _1to2y = _bbox2.GetLowerLeftY() - _bbox1.GetLowerLeftY();
 }
 
 void Blender::blend() {
     cout << "\t> blending width:  " << _bbox1.GetWidth() << endl;
     cout << "\t> blending height: " << _bbox1.GetHeight() << endl;
     _result.create(_image1.rows*2-_bbox1.GetHeight(), _image1.cols*2-_bbox1.GetWidth(), CV_8UC3);
+
+    // save the original images
+    _origin_img1 = _image1.clone();
+    _origin_img2 = _image2.clone();
+    for (int row = 0; row < _image1.rows; ++row) {
+        for (int col = 0; col < _image1.cols; ++col) {
+            if (10 < row && row < _image1.rows-10 && 10 < col && col < _image1.cols-10) continue;
+            uchar* p1 = _origin_img1.ptr(row, col);
+            uchar* p2 = _origin_img2.ptr(row, col);
+            if (p1[0] < 15 && p1[1] < 15 && p1[2] < 15) {
+                p1[0] = 255;
+                p1[1] = 0;
+                p1[2] = 0;
+            }
+            if (p2[0] < 15 && p2[1] < 15 && p2[2] < 15) {
+                p2[0] = 255;
+                p2[1] = 0;
+                p2[2] = 0;
+            }
+        }
+    }
 
     // set the blend width constant
     int BLEND_WIDTH = _bbox1.GetWidth() * 0.1;
@@ -58,15 +81,34 @@ void Blender::blend() {
         for (int col = 0; col < _image1.cols; ++col) {
             if (row < _bbox1.GetLowerLeftY() || row > _bbox1.GetUpperRightY()) continue;
             if (min_col <= col && col <= max_col) {
-                float weight = (max_col - col) / (float)BLEND_WIDTH;
+                const uchar* p2 = _origin_img2.ptr(row+_1to2y, col+_1to2x);
                 uchar* pptr = _image1.ptr(row, col);
+                if (p2[0] == 255 && !p2[1] && !p2[2]) {
+                    /*
+                    pptr[0] = 0;
+                    pptr[1] = 255;
+                    pptr[2] = 0;
+                    */
+                    continue;
+                }
+                float weight = (max_col - col) / (float)BLEND_WIDTH;
                 pptr[0] *= weight;
                 pptr[1] *= weight;
                 pptr[2] *= weight;
             }
             else if (max_col < col && col <= _bbox1.GetUpperRightX()) {
+                const uchar* p2 = _origin_img2.ptr(row+_1to2y, col+_1to2x);
                 uchar* pptr = _image1.ptr(row, col);
-                pptr[0] = pptr[1] = pptr[2] = 0;
+                if (p2[0] == 255 && !p2[1] && !p2[2]) {
+                    /*
+                    pptr[0] = 0;
+                    pptr[1] = 255;
+                    pptr[2] = 0;
+                    */
+                }
+                else {
+                    pptr[0] = pptr[1] = pptr[2] = 0;
+                }
             }
         }
     }
@@ -77,15 +119,34 @@ void Blender::blend() {
         for (int col = 0; col < _image2.cols; ++col) {
             if (row < _bbox2.GetLowerLeftY() || row > _bbox2.GetUpperRightY()) continue;
             if (min_col <= col && col <= max_col) {
-                float weight = (col - min_col) / (float)BLEND_WIDTH;
+                const uchar* p1 = _origin_img1.ptr(row-_1to2y, col-_1to2x);
                 uchar* pptr = _image2.ptr(row, col);
+                if (p1[0] == 255 && !p1[1] && !p1[2]) {
+                    /*
+                    pptr[0] = 0;
+                    pptr[1] = 255;
+                    pptr[2] = 0;
+                    */
+                    continue;
+                }
+                float weight = (col - min_col) / (float)BLEND_WIDTH;
                 pptr[0] *= weight;
                 pptr[1] *= weight;
                 pptr[2] *= weight;
             }
             else if (_bbox2.GetLowerLeftX() <= col && col < min_col) {
+                const uchar* p1 = _origin_img1.ptr(row-_1to2y, col-_1to2x);
                 uchar* pptr = _image2.ptr(row, col);
-                pptr[0] = pptr[1] = pptr[2] = 0;
+                if (p1[0] == 255 && !p1[1] && !p1[2]) {
+                    /*
+                    pptr[0] = 0;
+                    pptr[1] = 255;
+                    pptr[2] = 0;
+                    */
+                }
+                else {
+                    pptr[0] = pptr[1] = pptr[2] = 0;
+                }
             }
         }
     }
@@ -115,14 +176,6 @@ void Blender::blend() {
         bbox_image2.SetUpperRightX(_result.cols-1);
         bbox_image2.SetUpperRightY(_image2.rows-1);
     }
-    /*
-    assert(bbox_image1.GetWidth() == _image1.cols);
-    assert(bbox_image1.GetHeight() == _image1.rows);
-    cout << "[check] bbox for image1 passed." << endl;
-    assert(bbox_image2.GetWidth() == _image2.cols);
-    assert(bbox_image2.GetHeight() == _image2.rows);
-    cout << "[check] bbox for image2 passed." << endl;
-    */
 
     // blend
     for (int row = 0; row < (int)_result.rows; ++row) {
@@ -157,9 +210,13 @@ void Blender::blend() {
 void Blender::show() const {
     cv::namedWindow("left image", cv::WINDOW_AUTOSIZE);
     cv::namedWindow("right image", cv::WINDOW_AUTOSIZE);
+    cv::namedWindow("left origin", cv::WINDOW_AUTOSIZE);
+    cv::namedWindow("right origin", cv::WINDOW_AUTOSIZE);
     cv::namedWindow("blended image", cv::WINDOW_AUTOSIZE);
     cv::imshow("left image", _image1);
     cv::imshow("right image", _image2);
+    cv::imshow("left origin", _origin_img1);
+    cv::imshow("right origin", _origin_img2);
     cv::imshow("blended image", _result);
     cout << "\tpress any key to close all windows" << endl;
     cv::waitKey(0);
