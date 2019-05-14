@@ -92,9 +92,9 @@ void HarrisFeatureDetector::compute_products_of_sums() {
 void HarrisFeatureDetector::compute_response() {
     std::cerr << std::endl << "[ Computing response ]" << std::endl;
     _R.resize(_image_Sxx.size());
-    for (int row = 0; row < _image_Sxx.size(); ++row) {
+    for (int row = 0; row < (int)_image_Sxx.size(); ++row) {
         _R[row].resize(_image_Sxx[row].size());
-        for (int col = 0; col < _image_Sxx[row].size(); ++col) {
+        for (int col = 0; col < (int)_image_Sxx[row].size(); ++col) {
             // detM = a00a11 - a01a10
             // traceM = a00 + a11
             double detM   = _image_Sxx[row][col] * _image_Syy[row][col] - _image_Sxy[row][col] * _image_Sxy[row][col];
@@ -114,7 +114,7 @@ void HarrisFeatureDetector::compute_local_max_R() {
         for (int col = half_width+offset; col < _image_rgb.cols-half_width-offset; ++col) {
             if (this->isMax(_R, row, col, half_width)) {
                 PRObject curObj(row, col, _R[row][col]);
-                if (_result.size() < _features) {
+                if ((int)_result.size() < _features) {
                     _result.insert(curObj);
                     continue;
                 }
@@ -132,11 +132,11 @@ void HarrisFeatureDetector::compute_local_max_R() {
 
 void HarrisFeatureDetector::dump(std::ostream& os) {
     std::cerr << std::endl << "[ Dumping result ]" << std::endl;
-    os << "row,col" << std::endl;
+    os << "col,row" << std::endl;
     for (auto it = _result.begin(); it != _result.end(); ++it) {
         int row, col;
         (*it).get_coordinates(row, col);
-        os << row << ',' << col << std::endl;
+        os << col << ',' << row << std::endl;
     }
 }
 

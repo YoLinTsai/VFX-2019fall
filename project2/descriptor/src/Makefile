@@ -7,7 +7,7 @@ ECHO = /bin/echo
 
 CFLAGS = -g -Wall -std=c++11
 CFLAGS = -O3 -Wall -std=c++11
-LAFLAGS = -lm -lblas -llapack -llapacke
+# LAFLAGS = -lm -lblas -llapack -llapacke
 
 OPENCV_FLAG = `pkg-config --cflags --libs opencv`
 

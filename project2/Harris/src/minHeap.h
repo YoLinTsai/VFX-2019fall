@@ -47,15 +47,15 @@ public:
     }
 
     void fix_down(int id) {
-        if (id > this->size()/2) return;
+        if (id > (int)this->size()/2) return;
         int left_id  = 2*id;
         int right_id = 2*id + 1;
         int target_id;
-        if (right_id <= this->size() && left_id <= this->size())
+        if (right_id <= (int)this->size() && left_id <= (int)this->size())
             target_id = (_data[left_id] < _data[right_id] ? left_id : right_id);
-        else if (right_id > this->size() && left_id <= this->size())
+        else if (right_id > (int)this->size() && left_id <= (int)this->size())
             target_id = left_id;
-        else if (right_id <= this->size() && left_id > this->size())
+        else if (right_id <= (int)this->size() && left_id > (int)this->size())
             target_id = right_id;
         else exit(0);
         if (_data[id] > _data[target_id]) {

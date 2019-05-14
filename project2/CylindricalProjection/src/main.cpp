@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     for (auto it = info.begin(); it != info.end(); ++it) {
         Projector p(std::string(image_dir)+"/"+(*it).first, std::string(output_dir)+"/"+(*it).first, (*it).second);
         p.RUN();
-        p.show();
+        // p.show();
         p.save();
         ++count;
     }

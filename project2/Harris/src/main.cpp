@@ -19,6 +19,6 @@ int main(int argc, char *argv[])
     detector.read_image(image);
     detector.run();
     detector.dump(file);
-    detector.show_images();
+    // detector.show_images();
     return 0;
 }

@@ -36,9 +36,9 @@ void HarrisFeatureDetector::convolution(const std::vector<std::vector<double> >&
     int ur_x = src.size()-1-half_width;
     int ur_y = src.at(0).size()-1-half_width;
     dest.resize(src.size());
-    for (int row = 0; row < src.size(); ++row) {
+    for (int row = 0; row < (int)src.size(); ++row) {
         dest[row].resize(src.at(0).size());
-        for (int col = 0; col < src.at(0).size(); ++col) {
+        for (int col = 0; col < (int)src.at(0).size(); ++col) {
             if (row < bl_x || col < bl_y || row > ur_x || col > ur_y) {
                 dest[row][col] = 0;
                 continue;
