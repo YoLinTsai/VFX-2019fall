@@ -5,7 +5,9 @@
 using std::cout;
 using std::endl;
 
-void Blender::read(string image1, string image2, string bbox_file) {
+void Blender::read(string image1, string image2, string bbox_file, string next_box_file) {
+    _next_box_file = next_box_file;
+
     _image1 = cv::imread(image1, 1);
     _image2 = cv::imread(image2, 1);
     std::ifstream file;
@@ -28,6 +30,25 @@ void Blender::read(string image1, string image2, string bbox_file) {
     file >> token;
     _bbox2.SetUpperRightY(std::stoi(token));
 
+    std::ifstream file2;
+    file2.open(next_box_file);
+    file2 >> token;
+    _nextbox1.SetLowerLeftX(std::stoi(token));
+    file2 >> token;
+    _nextbox1.SetLowerLeftY(std::stoi(token));
+    file2 >> token;
+    _nextbox1.SetUpperRightX(std::stoi(token));
+    file2 >> token;
+    _nextbox1.SetUpperRightY(std::stoi(token));
+    file2 >> token;
+    _nextbox2.SetLowerLeftX(std::stoi(token));
+    file2 >> token;
+    _nextbox2.SetLowerLeftY(std::stoi(token));
+    file2 >> token;
+    _nextbox2.SetUpperRightX(std::stoi(token));
+    file2 >> token;
+    _nextbox2.SetUpperRightY(std::stoi(token));
+
     assert(_bbox1.GetWidth() == _bbox2.GetWidth());
     assert(_bbox1.GetHeight() == _bbox1.GetHeight());
 
@@ -43,23 +64,23 @@ void Blender::read(string image1, string image2, string bbox_file) {
 void Blender::blend() {
     cout << "\t> blending width:  " << _bbox1.GetWidth() << endl;
     cout << "\t> blending height: " << _bbox1.GetHeight() << endl;
-    _result.create(_image1.rows*2-_bbox1.GetHeight(), _image1.cols*2-_bbox1.GetWidth(), CV_8UC3);
+    _result.create((_image1.rows+_image2.rows)-_bbox1.GetHeight(), (_image1.cols+_image2.cols)-_bbox1.GetWidth(), CV_8UC3);
 
     // save the original images
     _origin_img1 = _image1.clone();
     _origin_img2 = _image2.clone();
     for (int row = 0; row < _image1.rows; ++row) {
         for (int col = 0; col < _image1.cols; ++col) {
-            if (10 < row && row < _image1.rows-10 && 10 < col && col < _image1.cols-10) continue;
+            if (100 < row && row < _image1.rows-100 && 5 < col && col < _image1.cols-5) continue;
             uchar* p1 = _origin_img1.ptr(row, col);
             uchar* p2 = _origin_img2.ptr(row, col);
             if (p1[0] < 15 && p1[1] < 15 && p1[2] < 15) {
-                p1[0] = 255;
+                p1[0] = 0;
                 p1[1] = 0;
                 p1[2] = 0;
             }
             if (p2[0] < 15 && p2[1] < 15 && p2[2] < 15) {
-                p2[0] = 255;
+                p2[0] = 0;
                 p2[1] = 0;
                 p2[2] = 0;
             }
@@ -123,6 +144,15 @@ void Blender::blend() {
             }
         }
     }
+
+    // fix box for image2
+    _nextbox1.SetLowerLeftX(_nextbox1.GetLowerLeftX() + bbox_image2.GetLowerLeftX());
+    _nextbox1.SetLowerLeftY(_nextbox1.GetLowerLeftY() + bbox_image2.GetLowerLeftY());
+    _nextbox1.SetUpperRightX(_nextbox1.GetUpperRightX() + bbox_image2.GetLowerLeftX());
+    _nextbox1.SetUpperRightY(_nextbox1.GetUpperRightY() + bbox_image2.GetLowerLeftY());
+    std::ofstream file(_next_box_file);
+    file << _nextbox1.GetLowerLeftX() << ' ' << _nextbox1.GetLowerLeftY() << ' ' << _nextbox1.GetUpperRightX() << ' ' << _nextbox1.GetUpperRightY() << std::endl;
+    file << _nextbox2.GetLowerLeftX() << ' ' << _nextbox2.GetLowerLeftY() << ' ' << _nextbox2.GetUpperRightX() << ' ' << _nextbox2.GetUpperRightY() << std::endl;
 }
 
 void Blender::full_blend() {
@@ -136,7 +166,7 @@ void Blender::full_blend() {
             if (_bbox1.GetLowerLeftX() <= col && col <= _bbox1.GetUpperRightX()) {
                 const uchar* p2 = _origin_img2.ptr(row+_1to2y, col+_1to2x);
                 uchar* pptr = _image1.ptr(row, col);
-                if (p2[0] == 255 && !p2[1] && !p2[2]) {
+                if (!p2[0] && !p2[1] && !p2[2]) {
                     continue;
                 }
                 float weight = (_bbox1.GetUpperRightX() - col) / (float)BLEND_WIDTH;
@@ -153,7 +183,7 @@ void Blender::full_blend() {
             if (_bbox2.GetLowerLeftX() <= col && col <= _bbox2.GetUpperRightX()) {
                 const uchar* p1 = _origin_img1.ptr(row-_1to2y, col-_1to2x);
                 uchar* pptr = _image2.ptr(row, col);
-                if (p1[0] == 255 && !p1[1] && !p1[2]) {
+                if (!p1[0] && !p1[1] && !p1[2]) {
                     /*
                     pptr[0] = 0;
                     pptr[1] = 255;
@@ -172,7 +202,7 @@ void Blender::full_blend() {
 
 void Blender::restricted_blend() {
     // set the blend width constant
-    int BLEND_WIDTH = _bbox1.GetWidth() * 0.25;
+    int BLEND_WIDTH = _bbox1.GetWidth() * 0.50;
     cout << "\t> blending constant: " << BLEND_WIDTH << endl;
 
     // find middle line
@@ -188,7 +218,7 @@ void Blender::restricted_blend() {
             if (min_col <= col && col <= max_col) {
                 const uchar* p2 = _origin_img2.ptr(row+_1to2y, col+_1to2x);
                 uchar* pptr = _image1.ptr(row, col);
-                if (p2[0] == 255 && !p2[1] && !p2[2]) {
+                if (!p2[0] && !p2[1] && !p2[2]) {
                     /*
                     pptr[0] = 0;
                     pptr[1] = 255;
@@ -204,7 +234,7 @@ void Blender::restricted_blend() {
             else if (max_col < col && col <= _bbox1.GetUpperRightX()) {
                 const uchar* p2 = _origin_img2.ptr(row+_1to2y, col+_1to2x);
                 uchar* pptr = _image1.ptr(row, col);
-                if (p2[0] == 255 && !p2[1] && !p2[2]) {
+                if (!p2[0] && !p2[1] && !p2[2]) {
                     /*
                     pptr[0] = 0;
                     pptr[1] = 255;
@@ -226,7 +256,7 @@ void Blender::restricted_blend() {
             if (min_col <= col && col <= max_col) {
                 const uchar* p1 = _origin_img1.ptr(row-_1to2y, col-_1to2x);
                 uchar* pptr = _image2.ptr(row, col);
-                if (p1[0] == 255 && !p1[1] && !p1[2]) {
+                if (!p1[0] && !p1[1] && !p1[2]) {
                     /*
                     pptr[0] = 0;
                     pptr[1] = 255;
@@ -242,7 +272,7 @@ void Blender::restricted_blend() {
             else if (_bbox2.GetLowerLeftX() <= col && col < min_col) {
                 const uchar* p1 = _origin_img1.ptr(row-_1to2y, col-_1to2x);
                 uchar* pptr = _image2.ptr(row, col);
-                if (p1[0] == 255 && !p1[1] && !p1[2]) {
+                if (!p1[0] && !p1[1] && !p1[2]) {
                     /*
                     pptr[0] = 0;
                     pptr[1] = 255;

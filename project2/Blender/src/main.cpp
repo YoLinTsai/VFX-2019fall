@@ -21,8 +21,8 @@ int main(int argc, char *argv[])
      * 0 0 99 511
      */
     cout << "[NOTICE] The output image name must end with a legal suffix (ex: .jpg/.png etc.)" << endl;
-    if (argc != 5) {
-        cout << "Usage: ./Blender <image1> <image2> <bbox of the overlap region in txt file> <output image name>" << endl;
+    if (argc != 6) {
+        cout << "Usage: ./Blender <image1> <image2> <bbox of the overlap region in txt file> <output image name> <bbox of image2 and image3>" << endl;
         exit(-1);
     }
 
@@ -30,10 +30,11 @@ int main(int argc, char *argv[])
     char* image2 = argv[2];
     char* bbox   = argv[3];
     char* out    = argv[4];
+    char* nextbox = argv[5];
 
-    Blender b(image1, image2, bbox);
+    Blender b(image1, image2, bbox, nextbox);
     b.blend();
-    b.show();
+    // b.show();
     b.save(out);
 
     return 0;

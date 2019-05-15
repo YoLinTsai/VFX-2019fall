@@ -11,7 +11,7 @@
 class Matcher
 {
 public:
-	Matcher() {}
+	Matcher(char* filename) { bbox_filename = filename; }
 	~Matcher() {}
 
 	void feature_match(std::vector<float*>, std::vector<float*>, int**, int**);
@@ -21,6 +21,7 @@ public:
 	std::vector<std::vector<int>> match_map;
 	std::vector<std::vector<int>> good_match;
 private:
+    char* bbox_filename;
 
 };
 

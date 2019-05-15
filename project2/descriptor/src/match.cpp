@@ -50,9 +50,9 @@ void Matcher::draw_match_pair(cv::Mat mat1, cv::Mat mat2, int** key1, int** key2
 	{
 		cv::circle(dst, cv::Point(key2[i][0]+width,key2[i][1]), 2, cv::Scalar(0,0,255), -1);
 	}
-	cv::namedWindow("match_result", cv::WINDOW_AUTOSIZE); 
-    cv::imshow("match_result", dst);
-    cv::waitKey(0);
+	// cv::namedWindow("match_result", cv::WINDOW_AUTOSIZE); 
+    // cv::imshow("match_result", dst);
+    // cv::waitKey(0);
     cv::imwrite("match_test.jpg",dst);
     exit(0);
 	return;
@@ -329,12 +329,20 @@ void Matcher::feature_match(std::vector<float*> all_feature_1, std::vector<float
 	int delta_y = int(move_y+0.5);
 
 	if(delta_x>=0&&delta_y>=0){
-		printf("%d %d %d %d\n",337-delta_x,0,337,600-delta_y);
-		printf("%d %d %d %d\n",0,delta_y,delta_x,600);
+        std::cout << "saving to file" << std::endl;
+	    std::ofstream file(bbox_filename);
+	    file << 336-delta_x << ' ' << 0 << ' ' << 336 << ' ' << 599-delta_y << std::endl;
+	    file << 0 << ' ' << delta_y << ' ' << delta_x << ' ' << 599 << std::endl;
+		printf("%d %d %d %d\n",336-delta_x,0,336,599-delta_y);
+		printf("%d %d %d %d\n",0,delta_y,delta_x,599);
 	}
 	else if(delta_x>=0&&delta_y<=0){
-		printf("%d %d %d %d\n",337-delta_x,-delta_y,337,600);
-		printf("%d %d %d %d\n",0,0,delta_x,600+delta_y);
+        std::cout << "saving to file hahah" << std::endl;
+	    std::ofstream file(bbox_filename);
+	    file << 336-delta_x << ' ' << -delta_y << ' ' << 336 << ' ' << 599 << std::endl;
+	    file << 0 << ' ' << 0 << ' ' << delta_x << ' ' << 599+delta_y << std::endl;
+		printf("%d %d %d %d\n",336-delta_x,-delta_y,336,599);
+		printf("%d %d %d %d\n",0,0,delta_x,599+delta_y);
 	}
 	/*
 	Trying to do inverse of H

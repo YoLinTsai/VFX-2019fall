@@ -40,10 +40,10 @@ struct BBox
 class Blender
 {
 public:
-    Blender(string i1, string i2, string b) { this->read(i1, i2, b); }
+    Blender(string i1, string i2, string b, string n) { this->read(i1, i2, b, n); }
     ~Blender() {}
 
-    void read(string, string, string);
+    void read(string, string, string, string);
     void blend();
     void show() const;
     void save(const std::string) const;
@@ -59,6 +59,10 @@ private:
     cv::Mat _result;
     BBox    _bbox1;
     BBox    _bbox2;
+
+    std::string _next_box_file;
+    BBox    _nextbox1;
+    BBox    _nextbox2;
 
     int _1to2x;
     int _1to2y;

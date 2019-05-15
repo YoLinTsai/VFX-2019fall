@@ -168,9 +168,9 @@ void SIFTfeatureDescriptor::draw_arrow_orientation()
         arrowedLine(dst, point1, point2, cv::Scalar(0, 255, 255), 1);
         cv::circle(dst, point1, 1, cv::Scalar(255), -1);
     }
-    cv::namedWindow("keypoint_arrow", cv::WINDOW_AUTOSIZE); 
-    cv::imshow("keypoint_arrow", dst);
-    cv::waitKey(0);
+    // cv::namedWindow("keypoint_arrow", cv::WINDOW_AUTOSIZE); 
+    // cv::imshow("keypoint_arrow", dst);
+    // cv::waitKey(0);
     return;
 }
 
@@ -193,9 +193,9 @@ void SIFTfeatureDescriptor::draw_arrow_theta()
         arrowedLine(dst, point1, point2, cv::Scalar(0, 255, 255), 1);
         cv::circle(dst, point1, 1, cv::Scalar(255, 0, 0), -1);
     }
-    cv::namedWindow("keypoint_arrow", cv::WINDOW_AUTOSIZE); 
-    cv::imshow("keypoint_arrow", dst);
-    cv::waitKey(0);
+    // cv::namedWindow("keypoint_arrow", cv::WINDOW_AUTOSIZE); 
+    // cv::imshow("keypoint_arrow", dst);
+    // cv::waitKey(0);
     cv::imwrite("theta.png",dst);
     return;
 }
@@ -499,7 +499,7 @@ void SIFTfeatureDescriptor::gaussian_test()
         }
     }
     cv::namedWindow("keypoint_arrow", cv::WINDOW_AUTOSIZE); 
-    cv::imshow("keypoint_arrow", _m_map_display);
+    // cv::imshow("keypoint_arrow", _m_map_display);
     cv::waitKey(0);
     cv::imwrite("m_map.png",_m_map_display);
     this->draw_arrow_theta();
