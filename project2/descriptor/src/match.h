@@ -17,7 +17,9 @@ public:
 	void feature_match(std::vector<float*>, std::vector<float*>, int**, int**);
 	void draw_match_pair(cv::Mat, cv::Mat, int**, int**);
 	void homograph_matrix(int, double*, double*, double*);
+	void ransac(std::vector<int>, double**, int**, int**);
 	std::vector<std::vector<int>> match_map;
+	std::vector<std::vector<int>> good_match;
 private:
 
 };

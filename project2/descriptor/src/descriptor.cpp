@@ -171,7 +171,6 @@ void SIFTfeatureDescriptor::draw_arrow_orientation()
     cv::namedWindow("keypoint_arrow", cv::WINDOW_AUTOSIZE); 
     cv::imshow("keypoint_arrow", dst);
     cv::waitKey(0);
-    cv::imwrite("2.png",dst);
     return;
 }
 
