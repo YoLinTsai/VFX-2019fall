@@ -48,6 +48,9 @@ public:
     void show() const;
     void save(const std::string) const;
 
+    void restricted_blend();
+    void full_blend();
+
 private:
     cv::Mat _image1;
     cv::Mat _image2;

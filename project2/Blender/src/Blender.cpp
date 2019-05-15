@@ -66,8 +66,113 @@ void Blender::blend() {
         }
     }
 
+    this->restricted_blend();
+    // this->full_blend();
+
+    // find the bounding box for the two images
+    BBox bbox_image1;
+    BBox bbox_image2;
+    if (_bbox1.GetLowerLeftY() > _bbox2.GetLowerLeftY()) {
+        bbox_image1.SetLowerLeftY(0);
+        bbox_image1.SetLowerLeftX(0);
+        bbox_image1.SetUpperRightX(_image1.cols-1);
+        bbox_image1.SetUpperRightY(_image1.rows-1);
+
+        bbox_image2.SetLowerLeftX(_bbox1.GetLowerLeftX());
+        bbox_image2.SetLowerLeftY(_bbox1.GetLowerLeftY());
+        bbox_image2.SetUpperRightX(_result.cols-1);
+        bbox_image2.SetUpperRightY(_result.rows-1);
+    }
+    else {
+        bbox_image1.SetLowerLeftY(_bbox2.GetLowerLeftY() - _bbox1.GetLowerLeftY());
+        bbox_image1.SetLowerLeftX(0);
+        bbox_image1.SetUpperRightX(_image1.cols-1);
+        bbox_image1.SetUpperRightY(_result.rows-1);
+
+        bbox_image2.SetLowerLeftX(_bbox1.GetLowerLeftX());
+        bbox_image2.SetLowerLeftY(_bbox1.GetLowerLeftY());
+        bbox_image2.SetUpperRightX(_result.cols-1);
+        bbox_image2.SetUpperRightY(_image2.rows-1);
+    }
+
+    // blend
+    for (int row = 0; row < (int)_result.rows; ++row) {
+        for (int col = 0; col < (int)_result.cols; ++col) {
+            uchar* pptr = _result.ptr(row, col);
+            if (bbox_image1.contains(col, row) && !bbox_image2.contains(col, row)) {
+                uchar* p1 = _image1.ptr(row-bbox_image1.GetLowerLeftY(), col-bbox_image1.GetLowerLeftX());
+                pptr[0] = p1[0];
+                pptr[1] = p1[1];
+                pptr[2] = p1[2];
+            }
+            else if (!bbox_image1.contains(col, row) && bbox_image2.contains(col, row)) {
+                uchar* p2 = _image2.ptr(row-bbox_image2.GetLowerLeftY(), col-bbox_image2.GetLowerLeftX());
+                pptr[0] = p2[0];
+                pptr[1] = p2[1];
+                pptr[2] = p2[2];
+            }
+            else if (bbox_image1.contains(col, row) && bbox_image2.contains(col, row)) {
+                uchar* p1 = _image1.ptr(row-bbox_image1.GetLowerLeftY(), col-bbox_image1.GetLowerLeftX());
+                uchar* p2 = _image2.ptr(row-bbox_image2.GetLowerLeftY(), col-bbox_image2.GetLowerLeftX());
+                pptr[0] = p2[0] + p1[0];
+                pptr[1] = p2[1] + p1[1];
+                pptr[2] = p2[2] + p1[2];
+            }
+            else {
+                pptr[0] = pptr[1] = pptr[2] = 0;
+            }
+        }
+    }
+}
+
+void Blender::full_blend() {
     // set the blend width constant
-    int BLEND_WIDTH = _bbox1.GetWidth() * 0.1;
+    cout << "\t> Full Blend " << endl;
+    int BLEND_WIDTH = _bbox1.GetUpperRightX() - _bbox1.GetLowerLeftX();
+
+    for (int row = 0; row < _image1.rows; ++row) {
+        for (int col = 0; col < _image1.cols; ++col) {
+            if (row < _bbox1.GetLowerLeftY() || row > _bbox1.GetUpperRightY()) continue;
+            if (_bbox1.GetLowerLeftX() <= col && col <= _bbox1.GetUpperRightX()) {
+                const uchar* p2 = _origin_img2.ptr(row+_1to2y, col+_1to2x);
+                uchar* pptr = _image1.ptr(row, col);
+                if (p2[0] == 255 && !p2[1] && !p2[2]) {
+                    continue;
+                }
+                float weight = (_bbox1.GetUpperRightX() - col) / (float)BLEND_WIDTH;
+                pptr[0] *= weight;
+                pptr[1] *= weight;
+                pptr[2] *= weight;
+            }
+        }
+    }
+
+    for (int row = 0; row < _image2.rows; ++row) {
+        for (int col = 0; col < _image2.cols; ++col) {
+            if (row < _bbox2.GetLowerLeftY() || row > _bbox2.GetUpperRightY()) continue;
+            if (_bbox2.GetLowerLeftX() <= col && col <= _bbox2.GetUpperRightX()) {
+                const uchar* p1 = _origin_img1.ptr(row-_1to2y, col-_1to2x);
+                uchar* pptr = _image2.ptr(row, col);
+                if (p1[0] == 255 && !p1[1] && !p1[2]) {
+                    /*
+                    pptr[0] = 0;
+                    pptr[1] = 255;
+                    pptr[2] = 0;
+                    */
+                    continue;
+                }
+                float weight = (col - _bbox2.GetLowerLeftX()) / (float)BLEND_WIDTH;
+                pptr[0] *= weight;
+                pptr[1] *= weight;
+                pptr[2] *= weight;
+            }
+        }
+    }
+}
+
+void Blender::restricted_blend() {
+    // set the blend width constant
+    int BLEND_WIDTH = _bbox1.GetWidth() * 0.25;
     cout << "\t> blending constant: " << BLEND_WIDTH << endl;
 
     // find middle line
@@ -147,61 +252,6 @@ void Blender::blend() {
                 else {
                     pptr[0] = pptr[1] = pptr[2] = 0;
                 }
-            }
-        }
-    }
-
-    // find the bounding box for the two images
-    BBox bbox_image1;
-    BBox bbox_image2;
-    if (_bbox1.GetLowerLeftY() > _bbox2.GetLowerLeftY()) {
-        bbox_image1.SetLowerLeftY(0);
-        bbox_image1.SetLowerLeftX(0);
-        bbox_image1.SetUpperRightX(_image1.cols-1);
-        bbox_image1.SetUpperRightY(_image1.rows-1);
-
-        bbox_image2.SetLowerLeftX(_bbox1.GetLowerLeftX());
-        bbox_image2.SetLowerLeftY(_bbox1.GetLowerLeftY());
-        bbox_image2.SetUpperRightX(_result.cols-1);
-        bbox_image2.SetUpperRightY(_result.rows-1);
-    }
-    else {
-        bbox_image1.SetLowerLeftY(_bbox2.GetLowerLeftY() - _bbox1.GetLowerLeftY());
-        bbox_image1.SetLowerLeftX(0);
-        bbox_image1.SetUpperRightX(_image1.cols-1);
-        bbox_image1.SetUpperRightY(_result.rows-1);
-
-        bbox_image2.SetLowerLeftX(_bbox1.GetLowerLeftX());
-        bbox_image2.SetLowerLeftY(_bbox1.GetLowerLeftY());
-        bbox_image2.SetUpperRightX(_result.cols-1);
-        bbox_image2.SetUpperRightY(_image2.rows-1);
-    }
-
-    // blend
-    for (int row = 0; row < (int)_result.rows; ++row) {
-        for (int col = 0; col < (int)_result.cols; ++col) {
-            uchar* pptr = _result.ptr(row, col);
-            if (bbox_image1.contains(col, row) && !bbox_image2.contains(col, row)) {
-                uchar* p1 = _image1.ptr(row-bbox_image1.GetLowerLeftY(), col-bbox_image1.GetLowerLeftX());
-                pptr[0] = p1[0];
-                pptr[1] = p1[1];
-                pptr[2] = p1[2];
-            }
-            else if (!bbox_image1.contains(col, row) && bbox_image2.contains(col, row)) {
-                uchar* p2 = _image2.ptr(row-bbox_image2.GetLowerLeftY(), col-bbox_image2.GetLowerLeftX());
-                pptr[0] = p2[0];
-                pptr[1] = p2[1];
-                pptr[2] = p2[2];
-            }
-            else if (bbox_image1.contains(col, row) && bbox_image2.contains(col, row)) {
-                uchar* p1 = _image1.ptr(row-bbox_image1.GetLowerLeftY(), col-bbox_image1.GetLowerLeftX());
-                uchar* p2 = _image2.ptr(row-bbox_image2.GetLowerLeftY(), col-bbox_image2.GetLowerLeftX());
-                pptr[0] = p2[0] + p1[0];
-                pptr[1] = p2[1] + p1[1];
-                pptr[2] = p2[2] + p1[2];
-            }
-            else {
-                pptr[0] = pptr[1] = pptr[2] = 0;
             }
         }
     }
