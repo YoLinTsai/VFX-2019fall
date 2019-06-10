@@ -5,3 +5,11 @@
 *.extheader*
 *test*
 *.swp
+*tags
+*data*
+*report*
+*tar*
+*blend.jpg
+*bounding*
+*png
+*keypoints
