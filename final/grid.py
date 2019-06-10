@@ -28,7 +28,8 @@ class Grid():
         self.mesh = [[None for i in range(self.g_width+1)] for j in range(self.g_height+1)]
         for row in range(self.g_height+1):
             for col in range(self.g_width+1):
-                self.mesh[row][col] = (row*self.cell_height, col*self.cell_width)
+                self.mesh[row][col] = np.array([row*self.cell_height, col*self.cell_width])
+        self.mesh = np.array(self.mesh)
 
         print ("image size:", self.rows, self.cols)
         print ("grid  size:", self.g_height, self.g_width)
@@ -70,19 +71,11 @@ class Grid():
                 cv2.line(self.img,
                          (self.mesh[i][col][1], self.mesh[i][col][0]),
                          (self.mesh[i+1][col][1], self.mesh[i+1][col][0]), (255,255,255), 5, 5)
-        for row in range(self.g_height):
-            for col in range(self.g_width):
                 cv2.circle(self.img,
-                           (self.gridCell[row][col].v1[1], self.gridCell[row][col].v1[0]),
+                           (self.mesh[i][col][1], self.mesh[i][col][0]),
                            5, (0,0,255), thickness=-1)
                 cv2.circle(self.img,
-                           (self.gridCell[row][col].v2[1], self.gridCell[row][col].v2[0]),
-                           5, (0,0,255), thickness=-1)
-                cv2.circle(self.img,
-                           (self.gridCell[row][col].v3[1], self.gridCell[row][col].v3[0]),
-                           5, (0,0,255), thickness=-1)
-                cv2.circle(self.img,
-                           (self.gridCell[row][col].v4[1], self.gridCell[row][col].v4[0]),
+                           (self.mesh[i+1][col][1], self.mesh[i+1][col][0]),
                            5, (0,0,255), thickness=-1)
 
         cv2.namedWindow('Grid', flags=cv2.WINDOW_NORMAL)

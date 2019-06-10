@@ -6,5 +6,5 @@ class ContentWarp():
         self.grid.read_feature_points(feat_file)
         self.grid.compute_bilinear_interpolation()
         self.grid.compute_salience()
-        # self.grid.show_grid()
+        self.grid.show_grid()
 
