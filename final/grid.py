@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from feature import Feature
 from cell import Cell
 
 class Grid():
@@ -12,7 +11,6 @@ class Grid():
         self.g_width  = self.get_grid_width(grid_width)      # grid width
         self.cell_height = self.rows // self.g_height        # cell height
         self.cell_width  = self.cols // self.g_width         # cell width
-        self.feat        = Feature()                         # feature object
 
         # create gridCell map, record by cell
         self.gridCell = [[None for i in range(self.g_width)] for j in range(self.g_height)]
@@ -38,14 +36,6 @@ class Grid():
     def query_cell(self, pixel):
         return self.gridCell[pixel[0]//self.cell_height][pixel[1]//self.cell_width]
 
-    def read_feature_points(self, filename):
-        self.feat.read(filename)
-
-    def compute_bilinear_interpolation(self):
-        for feat_name, feat_info in self.feat.feat.items():
-            corresponding_cell = self.query_cell(feat_info[0])
-            self.feat.set_coefficients(feat_name, corresponding_cell.compute_coeff(feat_info[0]))
-
     def compute_salience(self):
         # the L2 norm of the color varinace inside a cell
         for row in range(self.g_height):
@@ -55,9 +45,6 @@ class Grid():
                 g_var = np.var(self.img[row_min:row_end, col_min:col_end, 1])
                 r_var = np.var(self.img[row_min:row_end, col_min:col_end, 2])
                 self.gridCell[row][col].set_salience(np.linalg.norm([b_var, g_var, r_var]) + 0.5)
-
-    def show_feat(self):
-        print (self.feat)
 
     def show_grid(self):
         # draw horizontal line
@@ -76,6 +63,9 @@ class Grid():
                            5, (0,0,255), thickness=-1)
                 cv2.circle(self.img,
                            (self.mesh[i+1][col][1], self.mesh[i+1][col][0]),
+                           5, (0,0,255), thickness=-1)
+                cv2.circle(self.img,
+                           (self.mesh[i][col+1][1], self.mesh[i][col+1][0]),
                            5, (0,0,255), thickness=-1)
 
         cv2.namedWindow('Grid', flags=cv2.WINDOW_NORMAL)
