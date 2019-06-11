@@ -36,14 +36,28 @@ class ContentWarp():
                     self.v_map[len(self.v_map)] = (row, col)
                     self.mesh_map[(row, col)] = len(self.mesh_map)
 
-        # build A
+        # build A and B
+        # temporarily set the new feature points to row+10, col+10
         A = np.zeros((self.feat.size(), len(self.v_map)))
+        B = np.zeros((self.feat.size(), 2)) # row, col coordinates
         for i, feat_info in enumerate(self.feat.feat):
             cell_row, cell_col = feat_info[2]
             A[i][self.mesh_map[(cell_row  , cell_col  )]] = feat_info[1][0] # V1
             A[i][self.mesh_map[(cell_row+1, cell_col  )]] = feat_info[1][1] # V2
             A[i][self.mesh_map[(cell_row+1, cell_col+1)]] = feat_info[1][2] # V3
             A[i][self.mesh_map[(cell_row  , cell_col+1)]] = feat_info[1][3] # V4
+
+            B[i] = np.array(feat_info[0])
+
+        X, residuals, rank, s = np.linalg.lstsq(A, B, rcond=-1)
+
+        print (A)
+        print (B)
+
+        print (X)
+        print (residuals)
+        print (rank)
+        print (s)
 
     def compute_bilinear_interpolation(self):
         for i, feat_info in enumerate(self.feat.feat):
