@@ -35,11 +35,8 @@ class Grid():
         print ("grid  size:", self.g_height, self.g_width)
         print ("cell  size:", self.cell_height, self.cell_width)
 
-    def query_cell(self, pixel):
-        return self.gridCell[pixel[0]//self.cell_height][pixel[1]//self.cell_width]
-
-    def PixelToCellCoor(self, pixel):
-        return pixel[0]//self.cell_height, pixel[1]//self.cell_width
+    def FeatToCellCoor(self, pixel):
+        return (pixel[0]//self.cell_height, pixel[1]//self.cell_width)
 
     def compute_salience(self):
         # the L2 norm of the color varinace inside a cell

@@ -13,10 +13,15 @@ class Feature():
         with open(filename, 'r') as f:
             for line in f:
                 line = line.strip().split()
-                self.feat.append([(int(line[1]), int(line[2])), None]) #[(row, col), bilinear interpolation coefficients]
+
+                #[(row, col), bilinear interpolation coefficients, cooresponding gridCell position]
+                self.feat.append([(int(line[1]), int(line[2])), None, None])
 
     def set_coefficients(self, i, coeff):
         self.feat[i][1] = coeff
+
+    def set_grid_position(self, i, pos):
+        self.feat[i][2] = pos
 
     def size(self):
         return len(self.feat)
@@ -26,5 +31,6 @@ class Feature():
         for feat_info in self.feat:
             message += "row:{:4d}".format(feat_info[0][0])
             message += " col:{:4d} ".format(feat_info[0][1])
-            message += str(feat_info[1]) + '\n'
+            message += " coeff: " + str(feat_info[1])
+            message += " gridCell: " + str(feat_info[2]) + '\n'
         return message
