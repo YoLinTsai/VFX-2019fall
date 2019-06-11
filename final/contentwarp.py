@@ -35,7 +35,11 @@ class ContentWarp():
         # build A
         A = np.zeros((self.feat.size(), len(self.v_map)))
         for i, feat_info in enumerate(self.feat.feat):
-            pass
+            cell_row, cell_col = self.grid.PixelToCellCoor(feat_info[0])
+            A[i][self.mesh_map[(cell_row  , cell_col  )]] = feat_info[1][0] # V1
+            A[i][self.mesh_map[(cell_row+1, cell_col  )]] = feat_info[1][1] # V2
+            A[i][self.mesh_map[(cell_row+1, cell_col+1)]] = feat_info[1][2] # V3
+            A[i][self.mesh_map[(cell_row  , cell_col+1)]] = feat_info[1][3] # V4
 
     def compute_bilinear_interpolation(self):
         for i, feat_info in enumerate(self.feat.feat):
