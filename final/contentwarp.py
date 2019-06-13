@@ -36,8 +36,10 @@ class ContentWarp():
         # A*x = B
         v_map    = dict() # the map from Xi to mesh coordinates
         mesh_map = dict() # the map from mesh coordinates to Xi
+        check_grid = set() # the grids that need to be considered
 
         # find the vertices that need to be adjusted
+        # TODO: this is wrong, every body has to be considered!!!!!!!!!
         mask = np.zeros_like(self.grid.mesh[:,:,0])
         for feat_info in self.feat.feat:
             cell_row, cell_col = feat_info.grid_pos
@@ -46,7 +48,10 @@ class ContentWarp():
             mask[cell_row+1][cell_col  ] = 1
             mask[cell_row+1][cell_col+1] = 1
 
+            # if (cell_row, cell_col) not in check_grid: check_grid.add((cell_row, cell_col))
+
         # collect these vertices (variables)
+        # collect grides that need to be added to simularity transform as well
         map_id = 0 # if x[i] x[i+1] would be the row and col respectively for every even i
         for row in range(mask.shape[0]):
             for col in range(mask.shape[1]):
@@ -55,10 +60,23 @@ class ContentWarp():
                     mesh_map[(row, col)] = map_id
                     map_id += 2
 
+                    if row - 1 >= 0 and col - 1 >= 0:
+                        if (row - 1, col - 1) not in check_grid: check_grid.add((row - 1, col - 1))
+                    if row < mask.shape[0] - 1 and col < mask.shape[1] - 1:
+                        if (row, col) not in check_grid: check_grid.add((row, col))
+                    if row < mask.shape[0] - 1 and col - 1 >= 0:
+                        if (row, col - 1) not in check_grid: check_grid.add((row, col - 1))
+                    if row - 1 >= 0 and col < mask.shape[1] - 1:
+                        if (row - 1, col) not in check_grid: check_grid.add((row - 1, col))
+        '''
+        for i in check_grid:
+            print (i)
+        sys.exit()
+        '''
+
         # build A_DataTerm and B
         # build A_SimularityTransform
         # temporarily set the new feature points to row, col
-        check_grid   = set() # check if a grid is visited more than once for simularity transform term
         A_simularity = np.zeros((1, 2*len(v_map)))
         B_simularity = np.zeros((1, 1))
         A_data = np.zeros((2*self.feat.size(), 2*len(v_map)))
@@ -86,144 +104,148 @@ class ContentWarp():
             B_data[2*i]   = tl * ( np.array(feat_info.row) + 0.5 + 10) # to grid coordinate
             B_data[2*i+1] = tl * ( np.array(feat_info.col) + 0.5 + 10) # to grid coordinate
 
-            # simularity transfrom term
-            if (cell_row, cell_col) not in check_grid:
-                Ws = self.grid.gridCell[cell_row][cell_col].salience
-                A_Sim_new = np.zeros((16, 2*len(v_map)))
-                B_Sim_new = np.zeros((16, 1))
+        # simularity transfrom term
+        for cell in check_grid:
+            cell_row, cell_col = cell
+            Ws = self.grid.gridCell[cell_row][cell_col].salience
+            A_Sim_new = np.zeros((16, 2*len(v_map)))
+            B_Sim_new = np.zeros((16, 1))
 
-                # first triangle
-                u  = self.grid.gridCell[cell_row][cell_col].u_v[0][0]
-                v  = self.grid.gridCell[cell_row][cell_col].u_v[0][1]
-                A_Sim_new[0][v1_x_pos] = Ws * ( 1 )
-                A_Sim_new[0][v2_x_pos] = Ws * ( u - 1 )
-                A_Sim_new[0][v2_y_pos] = Ws * ( v )
-                A_Sim_new[0][v3_x_pos] = Ws * ( -u )
-                A_Sim_new[0][v3_y_pos] = Ws * ( -v )
-                B_Sim_new[0] = 0
-                A_Sim_new[1][v1_y_pos] = Ws * ( 1 )
-                A_Sim_new[1][v2_y_pos] = Ws * ( u - 1 )
-                A_Sim_new[1][v2_x_pos] = Ws * ( -v )
-                A_Sim_new[1][v3_y_pos] = Ws * ( -u )
-                A_Sim_new[1][v3_x_pos] = Ws * ( v )
-                B_Sim_new[1] = 0
+            v1_x_pos = mesh_map[(cell_row  , cell_col  )]; v1_y_pos = v1_x_pos + 1
+            v2_x_pos = mesh_map[(cell_row+1, cell_col  )]; v2_y_pos = v2_x_pos + 1
+            v3_x_pos = mesh_map[(cell_row+1, cell_col+1)]; v3_y_pos = v3_x_pos + 1
+            v4_x_pos = mesh_map[(cell_row  , cell_col+1)]; v4_y_pos = v4_x_pos + 1
 
-                # second triangle
-                u  = self.grid.gridCell[cell_row][cell_col].u_v[1][0]
-                v  = self.grid.gridCell[cell_row][cell_col].u_v[1][1]
-                A_Sim_new[2][v1_x_pos] = Ws * ( 1 )
-                A_Sim_new[2][v4_x_pos] = Ws * ( u - 1 )
-                A_Sim_new[2][v4_y_pos] = Ws * ( v )
-                A_Sim_new[2][v3_x_pos] = Ws * ( -u )
-                A_Sim_new[2][v3_y_pos] = Ws * ( -v )
-                B_Sim_new[2] = 0
-                A_Sim_new[3][v1_y_pos] = Ws * ( 1 )
-                A_Sim_new[3][v4_y_pos] = Ws * ( u - 1 )
-                A_Sim_new[3][v4_x_pos] = Ws * ( -v )
-                A_Sim_new[3][v3_y_pos] = Ws * ( -u )
-                A_Sim_new[3][v3_x_pos] = Ws * ( v )
-                B_Sim_new[3] = 0
+            # first triangle
+            u  = self.grid.gridCell[cell_row][cell_col].u_v[0][0]
+            v  = self.grid.gridCell[cell_row][cell_col].u_v[0][1]
+            A_Sim_new[0][v1_x_pos] = Ws * ( 1 )
+            A_Sim_new[0][v2_x_pos] = Ws * ( u - 1 )
+            A_Sim_new[0][v2_y_pos] = Ws * ( v )
+            A_Sim_new[0][v3_x_pos] = Ws * ( -u )
+            A_Sim_new[0][v3_y_pos] = Ws * ( -v )
+            B_Sim_new[0] = 0
+            A_Sim_new[1][v1_y_pos] = Ws * ( 1 )
+            A_Sim_new[1][v2_y_pos] = Ws * ( u - 1 )
+            A_Sim_new[1][v2_x_pos] = Ws * ( -v )
+            A_Sim_new[1][v3_y_pos] = Ws * ( -u )
+            A_Sim_new[1][v3_x_pos] = Ws * ( v )
+            B_Sim_new[1] = 0
 
-                # third triangle
-                u  = self.grid.gridCell[cell_row][cell_col].u_v[2][0]
-                v  = self.grid.gridCell[cell_row][cell_col].u_v[2][1]
-                A_Sim_new[4][v2_x_pos] = Ws * ( 1 )
-                A_Sim_new[4][v3_x_pos] = Ws * ( u - 1 )
-                A_Sim_new[4][v3_y_pos] = Ws * ( v )
-                A_Sim_new[4][v4_x_pos] = Ws * ( -u )
-                A_Sim_new[4][v4_y_pos] = Ws * ( -v )
-                B_Sim_new[4] = 0
-                A_Sim_new[5][v2_y_pos] = Ws * ( 1 )
-                A_Sim_new[5][v3_y_pos] = Ws * ( u - 1 )
-                A_Sim_new[5][v3_x_pos] = Ws * ( -v )
-                A_Sim_new[5][v4_y_pos] = Ws * ( -u )
-                A_Sim_new[5][v4_x_pos] = Ws * ( v )
-                B_Sim_new[5] = 0
+            # second triangle
+            u  = self.grid.gridCell[cell_row][cell_col].u_v[1][0]
+            v  = self.grid.gridCell[cell_row][cell_col].u_v[1][1]
+            A_Sim_new[2][v1_x_pos] = Ws * ( 1 )
+            A_Sim_new[2][v4_x_pos] = Ws * ( u - 1 )
+            A_Sim_new[2][v4_y_pos] = Ws * ( v )
+            A_Sim_new[2][v3_x_pos] = Ws * ( -u )
+            A_Sim_new[2][v3_y_pos] = Ws * ( -v )
+            B_Sim_new[2] = 0
+            A_Sim_new[3][v1_y_pos] = Ws * ( 1 )
+            A_Sim_new[3][v4_y_pos] = Ws * ( u - 1 )
+            A_Sim_new[3][v4_x_pos] = Ws * ( -v )
+            A_Sim_new[3][v3_y_pos] = Ws * ( -u )
+            A_Sim_new[3][v3_x_pos] = Ws * ( v )
+            B_Sim_new[3] = 0
 
-                # forth triangle
-                u  = self.grid.gridCell[cell_row][cell_col].u_v[3][0]
-                v  = self.grid.gridCell[cell_row][cell_col].u_v[3][1]
-                A_Sim_new[6][v2_x_pos] = Ws * ( 1 )
-                A_Sim_new[6][v1_x_pos] = Ws * ( u - 1 )
-                A_Sim_new[6][v1_y_pos] = Ws * ( v )
-                A_Sim_new[6][v4_x_pos] = Ws * ( -u )
-                A_Sim_new[6][v4_y_pos] = Ws * ( -v )
-                B_Sim_new[6] = 0
-                A_Sim_new[7][v2_y_pos] = Ws * ( 1 )
-                A_Sim_new[7][v1_y_pos] = Ws * ( u - 1 )
-                A_Sim_new[7][v1_x_pos] = Ws * ( -v )
-                A_Sim_new[7][v4_y_pos] = Ws * ( -u )
-                A_Sim_new[7][v4_x_pos] = Ws * ( v )
-                B_Sim_new[7] = 0
+            # third triangle
+            u  = self.grid.gridCell[cell_row][cell_col].u_v[2][0]
+            v  = self.grid.gridCell[cell_row][cell_col].u_v[2][1]
+            A_Sim_new[4][v2_x_pos] = Ws * ( 1 )
+            A_Sim_new[4][v3_x_pos] = Ws * ( u - 1 )
+            A_Sim_new[4][v3_y_pos] = Ws * ( v )
+            A_Sim_new[4][v4_x_pos] = Ws * ( -u )
+            A_Sim_new[4][v4_y_pos] = Ws * ( -v )
+            B_Sim_new[4] = 0
+            A_Sim_new[5][v2_y_pos] = Ws * ( 1 )
+            A_Sim_new[5][v3_y_pos] = Ws * ( u - 1 )
+            A_Sim_new[5][v3_x_pos] = Ws * ( -v )
+            A_Sim_new[5][v4_y_pos] = Ws * ( -u )
+            A_Sim_new[5][v4_x_pos] = Ws * ( v )
+            B_Sim_new[5] = 0
 
-                # fifth triangle
-                u  = self.grid.gridCell[cell_row][cell_col].u_v[4][0]
-                v  = self.grid.gridCell[cell_row][cell_col].u_v[4][1]
-                A_Sim_new[8][v3_x_pos] = Ws * ( 1 )
-                A_Sim_new[8][v4_x_pos] = Ws * ( u - 1 )
-                A_Sim_new[8][v4_y_pos] = Ws * ( v )
-                A_Sim_new[8][v1_x_pos] = Ws * ( -u )
-                A_Sim_new[8][v1_y_pos] = Ws * ( -v )
-                B_Sim_new[8] = 0
-                A_Sim_new[9][v3_y_pos] = Ws * ( 1 )
-                A_Sim_new[9][v4_y_pos] = Ws * ( u - 1 )
-                A_Sim_new[9][v4_x_pos] = Ws * ( -v )
-                A_Sim_new[9][v1_y_pos] = Ws * ( -u )
-                A_Sim_new[9][v1_x_pos] = Ws * ( v )
-                B_Sim_new[9] = 0
+            # forth triangle
+            u  = self.grid.gridCell[cell_row][cell_col].u_v[3][0]
+            v  = self.grid.gridCell[cell_row][cell_col].u_v[3][1]
+            A_Sim_new[6][v2_x_pos] = Ws * ( 1 )
+            A_Sim_new[6][v1_x_pos] = Ws * ( u - 1 )
+            A_Sim_new[6][v1_y_pos] = Ws * ( v )
+            A_Sim_new[6][v4_x_pos] = Ws * ( -u )
+            A_Sim_new[6][v4_y_pos] = Ws * ( -v )
+            B_Sim_new[6] = 0
+            A_Sim_new[7][v2_y_pos] = Ws * ( 1 )
+            A_Sim_new[7][v1_y_pos] = Ws * ( u - 1 )
+            A_Sim_new[7][v1_x_pos] = Ws * ( -v )
+            A_Sim_new[7][v4_y_pos] = Ws * ( -u )
+            A_Sim_new[7][v4_x_pos] = Ws * ( v )
+            B_Sim_new[7] = 0
 
-                # sixth triangle
-                u  = self.grid.gridCell[cell_row][cell_col].u_v[5][0]
-                v  = self.grid.gridCell[cell_row][cell_col].u_v[5][1]
-                A_Sim_new[10][v3_x_pos] = Ws * ( 1 )
-                A_Sim_new[10][v2_x_pos] = Ws * ( u - 1 )
-                A_Sim_new[10][v2_y_pos] = Ws * ( v )
-                A_Sim_new[10][v1_x_pos] = Ws * ( -u )
-                A_Sim_new[10][v1_y_pos] = Ws * ( -v )
-                B_Sim_new[10] = 0
-                A_Sim_new[11][v3_y_pos] = Ws * ( 1 )
-                A_Sim_new[11][v2_y_pos] = Ws * ( u - 1 )
-                A_Sim_new[11][v2_x_pos] = Ws * ( -v )
-                A_Sim_new[11][v1_y_pos] = Ws * ( -u )
-                A_Sim_new[11][v1_x_pos] = Ws * ( v )
-                B_Sim_new[11] = 0
+            # fifth triangle
+            u  = self.grid.gridCell[cell_row][cell_col].u_v[4][0]
+            v  = self.grid.gridCell[cell_row][cell_col].u_v[4][1]
+            A_Sim_new[8][v3_x_pos] = Ws * ( 1 )
+            A_Sim_new[8][v4_x_pos] = Ws * ( u - 1 )
+            A_Sim_new[8][v4_y_pos] = Ws * ( v )
+            A_Sim_new[8][v1_x_pos] = Ws * ( -u )
+            A_Sim_new[8][v1_y_pos] = Ws * ( -v )
+            B_Sim_new[8] = 0
+            A_Sim_new[9][v3_y_pos] = Ws * ( 1 )
+            A_Sim_new[9][v4_y_pos] = Ws * ( u - 1 )
+            A_Sim_new[9][v4_x_pos] = Ws * ( -v )
+            A_Sim_new[9][v1_y_pos] = Ws * ( -u )
+            A_Sim_new[9][v1_x_pos] = Ws * ( v )
+            B_Sim_new[9] = 0
 
-                # seventh triangle
-                u  = self.grid.gridCell[cell_row][cell_col].u_v[6][0]
-                v  = self.grid.gridCell[cell_row][cell_col].u_v[6][1]
-                A_Sim_new[12][v4_x_pos] = Ws * ( 1 )
-                A_Sim_new[12][v1_x_pos] = Ws * ( u - 1 )
-                A_Sim_new[12][v1_y_pos] = Ws * ( v )
-                A_Sim_new[12][v2_x_pos] = Ws * ( -u )
-                A_Sim_new[12][v2_y_pos] = Ws * ( -v )
-                B_Sim_new[12] = 0
-                A_Sim_new[13][v4_y_pos] = Ws * ( 1 )
-                A_Sim_new[13][v1_y_pos] = Ws * ( u - 1 )
-                A_Sim_new[13][v1_x_pos] = Ws * ( -v )
-                A_Sim_new[13][v2_y_pos] = Ws * ( -u )
-                A_Sim_new[13][v2_x_pos] = Ws * ( v )
-                B_Sim_new[13] = 0
+            # sixth triangle
+            u  = self.grid.gridCell[cell_row][cell_col].u_v[5][0]
+            v  = self.grid.gridCell[cell_row][cell_col].u_v[5][1]
+            A_Sim_new[10][v3_x_pos] = Ws * ( 1 )
+            A_Sim_new[10][v2_x_pos] = Ws * ( u - 1 )
+            A_Sim_new[10][v2_y_pos] = Ws * ( v )
+            A_Sim_new[10][v1_x_pos] = Ws * ( -u )
+            A_Sim_new[10][v1_y_pos] = Ws * ( -v )
+            B_Sim_new[10] = 0
+            A_Sim_new[11][v3_y_pos] = Ws * ( 1 )
+            A_Sim_new[11][v2_y_pos] = Ws * ( u - 1 )
+            A_Sim_new[11][v2_x_pos] = Ws * ( -v )
+            A_Sim_new[11][v1_y_pos] = Ws * ( -u )
+            A_Sim_new[11][v1_x_pos] = Ws * ( v )
+            B_Sim_new[11] = 0
 
-                # eighth triangle
-                u  = self.grid.gridCell[cell_row][cell_col].u_v[7][0]
-                v  = self.grid.gridCell[cell_row][cell_col].u_v[7][1]
-                A_Sim_new[14][v4_x_pos] = Ws * ( 1 )
-                A_Sim_new[14][v3_x_pos] = Ws * ( u - 1 )
-                A_Sim_new[14][v3_y_pos] = Ws * ( v )
-                A_Sim_new[14][v2_x_pos] = Ws * ( -u )
-                A_Sim_new[14][v2_y_pos] = Ws * ( -v )
-                B_Sim_new[14] = 0
-                A_Sim_new[15][v4_y_pos] = Ws * ( 1 )
-                A_Sim_new[15][v3_y_pos] = Ws * ( u - 1 )
-                A_Sim_new[15][v3_x_pos] = Ws * ( -v )
-                A_Sim_new[15][v2_y_pos] = Ws * ( -u )
-                A_Sim_new[15][v2_x_pos] = Ws * ( v )
-                B_Sim_new[15] = 0
+            # seventh triangle
+            u  = self.grid.gridCell[cell_row][cell_col].u_v[6][0]
+            v  = self.grid.gridCell[cell_row][cell_col].u_v[6][1]
+            A_Sim_new[12][v4_x_pos] = Ws * ( 1 )
+            A_Sim_new[12][v1_x_pos] = Ws * ( u - 1 )
+            A_Sim_new[12][v1_y_pos] = Ws * ( v )
+            A_Sim_new[12][v2_x_pos] = Ws * ( -u )
+            A_Sim_new[12][v2_y_pos] = Ws * ( -v )
+            B_Sim_new[12] = 0
+            A_Sim_new[13][v4_y_pos] = Ws * ( 1 )
+            A_Sim_new[13][v1_y_pos] = Ws * ( u - 1 )
+            A_Sim_new[13][v1_x_pos] = Ws * ( -v )
+            A_Sim_new[13][v2_y_pos] = Ws * ( -u )
+            A_Sim_new[13][v2_x_pos] = Ws * ( v )
+            B_Sim_new[13] = 0
 
-                A_simularity = np.vstack((A_simularity, A_Sim_new))
-                B_simularity = np.vstack((B_simularity, B_Sim_new))
+            # eighth triangle
+            u  = self.grid.gridCell[cell_row][cell_col].u_v[7][0]
+            v  = self.grid.gridCell[cell_row][cell_col].u_v[7][1]
+            A_Sim_new[14][v4_x_pos] = Ws * ( 1 )
+            A_Sim_new[14][v3_x_pos] = Ws * ( u - 1 )
+            A_Sim_new[14][v3_y_pos] = Ws * ( v )
+            A_Sim_new[14][v2_x_pos] = Ws * ( -u )
+            A_Sim_new[14][v2_y_pos] = Ws * ( -v )
+            B_Sim_new[14] = 0
+            A_Sim_new[15][v4_y_pos] = Ws * ( 1 )
+            A_Sim_new[15][v3_y_pos] = Ws * ( u - 1 )
+            A_Sim_new[15][v3_x_pos] = Ws * ( -v )
+            A_Sim_new[15][v2_y_pos] = Ws * ( -u )
+            A_Sim_new[15][v2_x_pos] = Ws * ( v )
+            B_Sim_new[15] = 0
 
-                check_grid.add((cell_row, cell_col))
+            A_simularity = np.vstack((A_simularity, A_Sim_new))
+            B_simularity = np.vstack((B_simularity, B_Sim_new))
 
         A_simularity *= self.alpha
         B_simularity *= self.alpha
