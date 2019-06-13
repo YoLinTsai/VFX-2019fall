@@ -4,7 +4,8 @@ from feature import Feature
 import numpy as np
 
 class ContentWarp():
-    def __init__(self, image, feat_file, grid_height, grid_width):
+    def __init__(self, image, feat_file, grid_height, grid_width, alpha=1):
+        self.alpha = alpha
         self.feat = Feature() # feature object
         self.read_feature_points(feat_file)
 
@@ -221,6 +222,9 @@ class ContentWarp():
                 B_simularity = np.vstack((B_simularity, B_Sim_new))
 
                 check_grid.add((cell_row, cell_col))
+
+        A_simularity *= self.alpha
+        B_simularity *= self.alpha
 
         A = np.vstack((A_data, A_simularity[1:]))
         B = np.vstack((B_data, B_simularity[1:]))
