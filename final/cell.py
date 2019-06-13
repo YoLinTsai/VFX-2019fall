@@ -49,7 +49,7 @@ class Cell():
         cv4 = abs(x - self.v2[0]) * abs(y - self.v2[1])
         return np.array([cv1, cv2, cv3, cv4]) / (cv1 + cv2 + cv3 + cv4)
     
-    def collect_pixel(self): # collect all the pixels containing inside the cell
+    def collect_pixels(self): # collect all the pixels containing inside the cell
         '''
         DID NOT CHECK THOROUGHLY, BUGS MAY EXIST
         calculate the four functions, the definition is tricky
@@ -136,6 +136,12 @@ class Cell():
     def get_boundary(self):
         # returns the boundary in the pixel coordinates
         return self.v1[0], self.v2[0], self.v1[1], self.v4[1]
+
+    def set_corners(self, v1, v2, v3, v4):
+        self.v1 = v1
+        self.v2 = v2
+        self.v3 = v3
+        self.v4 = v4
 
     def set_salience(self, s):
         self.salience = s

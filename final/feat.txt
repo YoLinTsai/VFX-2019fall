@@ -1,3 +1,3 @@
 // <feature name> <row> <col> <calculated temporal coherence value>
 f1 25 25 1
-f2 25 76 1
+f2 76 76 1

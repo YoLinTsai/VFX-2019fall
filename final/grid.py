@@ -48,30 +48,36 @@ class Grid():
                 r_var = np.var(self.img[row_min:row_end, col_min:col_end, 2])
                 self.gridCell[row][col].set_salience(np.linalg.norm([b_var, g_var, r_var]) + 0.5)
 
+    def compute_cell_pixels(self):
+        for row in range(self.g_height):
+            for col in range(self.g_width):
+                self.gridCell[row][col].collect_pixels()
+
     def show_grid(self):
         # draw horizontal line
+        black = np.zeros_like(self.img)
         for row in range(self.g_height):
             for i in range(self.g_width):
-                cv2.line(self.img,
+                cv2.line(black,
                          (self.mesh[row][i][1], self.mesh[row][i][0]),
                          (self.mesh[row][i+1][1], self.mesh[row][i+1][0]), (255,255,255), 5, 5)
         for col in range(self.g_width):
             for i in range(self.g_height):
-                cv2.line(self.img,
+                cv2.line(black,
                          (self.mesh[i][col][1], self.mesh[i][col][0]),
                          (self.mesh[i+1][col][1], self.mesh[i+1][col][0]), (255,255,255), 5, 5)
-                cv2.circle(self.img,
+                cv2.circle(black,
                            (self.mesh[i][col][1], self.mesh[i][col][0]),
                            5, (0,0,255), thickness=-1)
-                cv2.circle(self.img,
+                cv2.circle(black,
                            (self.mesh[i+1][col][1], self.mesh[i+1][col][0]),
                            5, (0,0,255), thickness=-1)
-                cv2.circle(self.img,
+                cv2.circle(black,
                            (self.mesh[i][col+1][1], self.mesh[i][col+1][0]),
                            5, (0,0,255), thickness=-1)
 
         cv2.namedWindow('Grid', flags=cv2.WINDOW_NORMAL)
-        cv2.imshow('Grid', self.img)
+        cv2.imshow('Grid', black)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 

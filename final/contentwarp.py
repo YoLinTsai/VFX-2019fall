@@ -15,9 +15,11 @@ class ContentWarp():
 
         self.set_grid_info_to_feat()
         self.compute_bilinear_interpolation()
-        self.build_linear_system()
+        self.build_linear_system_and_solve()
+        self.grid.compute_cell_pixels()
+        self.grid.show_grid()
 
-    def build_linear_system(self):
+    def build_linear_system_and_solve(self):
         '''
         A: [w1 0 w2 0 w3 0 w4 0 0 0 ... 0] X: [V_1x]
            [0 w1 0 w2 0 w3 0 w4 0 0 ... 0]    [V_1y]
@@ -32,8 +34,8 @@ class ContentWarp():
                                                 .
         '''
         # A*x = B
-        self.v_map    = dict() # the map from Xi to mesh coordinates
-        self.mesh_map = dict() # the map from mesh coordinates to Xi
+        v_map    = dict() # the map from Xi to mesh coordinates
+        mesh_map = dict() # the map from mesh coordinates to Xi
 
         # find the vertices that need to be adjusted
         mask = np.zeros_like(self.grid.mesh[:,:,0])
@@ -49,27 +51,27 @@ class ContentWarp():
         for row in range(mask.shape[0]):
             for col in range(mask.shape[1]):
                 if mask[row][col] == 1:
-                    self.v_map[map_id] = (row, col)
-                    self.mesh_map[(row, col)] = map_id
+                    v_map[map_id] = (row, col)
+                    mesh_map[(row, col)] = map_id
                     map_id += 2
 
         # build A_DataTerm and B
         # build A_SimularityTransform
         # temporarily set the new feature points to row, col
         check_grid   = set() # check if a grid is visited more than once for simularity transform term
-        A_simularity = np.zeros((1, 2*len(self.v_map)))
+        A_simularity = np.zeros((1, 2*len(v_map)))
         B_simularity = np.zeros((1, 1))
-        A_data = np.zeros((2*self.feat.size(), 2*len(self.v_map)))
+        A_data = np.zeros((2*self.feat.size(), 2*len(v_map)))
         B_data = np.zeros((2*self.feat.size(), 1))
         for i, feat_info in enumerate(self.feat.feat):
             cell_row, cell_col = feat_info.grid_pos
             tl = feat_info.temporal_coeff
 
             # data term
-            v1_x_pos = self.mesh_map[(cell_row  , cell_col  )]; v1_y_pos = v1_x_pos + 1
-            v2_x_pos = self.mesh_map[(cell_row+1, cell_col  )]; v2_y_pos = v2_x_pos + 1
-            v3_x_pos = self.mesh_map[(cell_row+1, cell_col+1)]; v3_y_pos = v3_x_pos + 1
-            v4_x_pos = self.mesh_map[(cell_row  , cell_col+1)]; v4_y_pos = v4_x_pos + 1
+            v1_x_pos = mesh_map[(cell_row  , cell_col  )]; v1_y_pos = v1_x_pos + 1
+            v2_x_pos = mesh_map[(cell_row+1, cell_col  )]; v2_y_pos = v2_x_pos + 1
+            v3_x_pos = mesh_map[(cell_row+1, cell_col+1)]; v3_y_pos = v3_x_pos + 1
+            v4_x_pos = mesh_map[(cell_row  , cell_col+1)]; v4_y_pos = v4_x_pos + 1
 
             A_data[2*i][v1_x_pos] = tl * feat_info.interpolation_coeff[0] # V1's coeff for x coordinate
             A_data[2*i][v2_x_pos] = tl * feat_info.interpolation_coeff[1] # V2's coeff for x coordinate
@@ -81,13 +83,13 @@ class ContentWarp():
             A_data[2*i+1][v3_y_pos] = tl * feat_info.interpolation_coeff[2] # V3's coeff for y coordinate
             A_data[2*i+1][v4_y_pos] = tl * feat_info.interpolation_coeff[3] # V4's coeff for y coordinate
 
-            B_data[2*i]   = tl * ( np.array(feat_info.row) + 0.5 ) # to grid coordinate
-            B_data[2*i+1] = tl * ( np.array(feat_info.col) + 0.5 ) # to grid coordinate
+            B_data[2*i]   = tl * ( np.array(feat_info.row) + 0.5 + 10) # to grid coordinate
+            B_data[2*i+1] = tl * ( np.array(feat_info.col) + 0.5 + 10) # to grid coordinate
 
             # simularity transfrom term
             if (cell_row, cell_col) not in check_grid:
                 Ws = self.grid.gridCell[cell_row][cell_col].salience
-                A_Sim_new = np.zeros((16, 2*len(self.v_map)))
+                A_Sim_new = np.zeros((16, 2*len(v_map)))
                 B_Sim_new = np.zeros((16, 1))
 
                 # first triangle
@@ -237,8 +239,8 @@ class ContentWarp():
         the correctness of the implementation
         (a feature that belongs the the grid[0][0] must be specified in feat.txt)
         '''
-        A = np.vstack((A, np.array([1,0,0,0,0,0,0,0,0,0,0,0])))
-        A = np.vstack((A, np.array([0,1,0,0,0,0,0,0,0,0,0,0])))
+        A = np.vstack((A, np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0])))
+        A = np.vstack((A, np.array([0,1,0,0,0,0,0,0,0,0,0,0,0,0])))
         B = np.vstack((B, np.array([0])))
         B = np.vstack((B, np.array([0])))
 
@@ -260,6 +262,20 @@ class ContentWarp():
         # round the solution to the second decimal
         X = np.array([ round(x, 2) for x in X.reshape(-1) ]).reshape((-1, 1))
         print (X)
+
+
+        # apply the result
+        for i in range(X.shape[0]):
+            if i % 2 != 0: continue
+            mesh_row, mesh_col = v_map[i]
+            self.grid.mesh[mesh_row][mesh_col] = np.array([X[i][0], X[i+1][0]])
+
+        for cell_row, cell_col in check_grid:
+            v1 = self.grid.mesh[cell_row  ][cell_col  ]
+            v2 = self.grid.mesh[cell_row+1][cell_col  ]
+            v3 = self.grid.mesh[cell_row+1][cell_col+1]
+            v4 = self.grid.mesh[cell_row  ][cell_col+1]
+            self.grid.gridCell[cell_row][cell_col].set_corners(v1, v2, v3, v4)
 
     def compute_bilinear_interpolation(self):
         for i, feat_info in enumerate(self.feat.feat):
