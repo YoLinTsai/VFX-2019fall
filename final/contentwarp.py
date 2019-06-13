@@ -48,7 +48,6 @@ class ContentWarp():
         for row in range(mask.shape[0]):
             for col in range(mask.shape[1]):
                 if mask[row][col] == 1:
-                    print (row, col)
                     self.v_map[map_id] = (row, col)
                     self.mesh_map[(row, col)] = map_id
                     map_id += 2
@@ -226,8 +225,15 @@ class ContentWarp():
         B = np.vstack((B_data, B_simularity[1:]))
 
         print (A.shape)
-        A = np.vstack((A, np.array([1,0,0,0,0,0,0,0,0,0,0,0])))
-        A = np.vstack((A, np.array([0,1,0,0,0,0,0,0,0,0,0,0])))
+
+        '''
+        due to the fact that during testing the system is very likely to be under-determined,
+        these two terms are added to set the upper left vertex to (0, 0) in order to verfiy
+        the correctness of the implementation
+        (a feature that belongs the the grid[0][0] must be specified in feat.txt)
+        '''
+        A = np.vstack((A, np.array([1,0,0,0,0,0,0,0])))
+        A = np.vstack((A, np.array([0,1,0,0,0,0,0,0])))
         B = np.vstack((B, np.array([0])))
         B = np.vstack((B, np.array([0])))
 
