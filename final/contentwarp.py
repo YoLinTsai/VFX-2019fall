@@ -37,7 +37,7 @@ class ContentWarp():
         # find the vertices that need to be adjusted
         mask = np.zeros_like(self.grid.mesh[:,:,0])
         for feat_info in self.feat.feat:
-            cell_row, cell_col = feat_info[2]
+            cell_row, cell_col = feat_info.grid_pos
             mask[cell_row  ][cell_col  ] = 1
             mask[cell_row  ][cell_col+1] = 1
             mask[cell_row+1][cell_col  ] = 1
@@ -61,7 +61,8 @@ class ContentWarp():
         A_data = np.zeros((2*self.feat.size(), 2*len(self.v_map)))
         B_data = np.zeros((2*self.feat.size(), 1))
         for i, feat_info in enumerate(self.feat.feat):
-            cell_row, cell_col = feat_info[2]
+            cell_row, cell_col = feat_info.grid_pos
+            tl = feat_info.temporal_coeff
 
             # data term
             v1_x_pos = self.mesh_map[(cell_row  , cell_col  )]; v1_y_pos = v1_x_pos + 1
@@ -69,18 +70,18 @@ class ContentWarp():
             v3_x_pos = self.mesh_map[(cell_row+1, cell_col+1)]; v3_y_pos = v3_x_pos + 1
             v4_x_pos = self.mesh_map[(cell_row  , cell_col+1)]; v4_y_pos = v4_x_pos + 1
 
-            A_data[2*i][v1_x_pos] = feat_info[1][0] # V1's coeff for x coordinate
-            A_data[2*i][v2_x_pos] = feat_info[1][1] # V2's coeff for x coordinate
-            A_data[2*i][v3_x_pos] = feat_info[1][2] # V3's coeff for x coordinate
-            A_data[2*i][v4_x_pos] = feat_info[1][3] # V4's coeff for x coordinate
+            A_data[2*i][v1_x_pos] = tl * feat_info.interpolation_coeff[0] # V1's coeff for x coordinate
+            A_data[2*i][v2_x_pos] = tl * feat_info.interpolation_coeff[1] # V2's coeff for x coordinate
+            A_data[2*i][v3_x_pos] = tl * feat_info.interpolation_coeff[2] # V3's coeff for x coordinate
+            A_data[2*i][v4_x_pos] = tl * feat_info.interpolation_coeff[3] # V4's coeff for x coordinate
 
-            A_data[2*i+1][v1_y_pos] = feat_info[1][0] # V1's coeff for y coordinate
-            A_data[2*i+1][v2_y_pos] = feat_info[1][1] # V2's coeff for y coordinate
-            A_data[2*i+1][v3_y_pos] = feat_info[1][2] # V3's coeff for y coordinate
-            A_data[2*i+1][v4_y_pos] = feat_info[1][3] # V4's coeff for y coordinate
+            A_data[2*i+1][v1_y_pos] = tl * feat_info.interpolation_coeff[0] # V1's coeff for y coordinate
+            A_data[2*i+1][v2_y_pos] = tl * feat_info.interpolation_coeff[1] # V2's coeff for y coordinate
+            A_data[2*i+1][v3_y_pos] = tl * feat_info.interpolation_coeff[2] # V3's coeff for y coordinate
+            A_data[2*i+1][v4_y_pos] = tl * feat_info.interpolation_coeff[3] # V4's coeff for y coordinate
 
-            B_data[2*i]   = np.array(feat_info[0][0]) + 0.5 # to grid coordinate
-            B_data[2*i+1] = np.array(feat_info[0][1]) + 0.5 # to grid coordinate
+            B_data[2*i]   = tl * ( np.array(feat_info.row) + 0.5 ) # to grid coordinate
+            B_data[2*i+1] = tl * ( np.array(feat_info.col) + 0.5 ) # to grid coordinate
 
             # simularity transfrom term
             if (cell_row, cell_col) not in check_grid:
@@ -232,8 +233,8 @@ class ContentWarp():
         the correctness of the implementation
         (a feature that belongs the the grid[0][0] must be specified in feat.txt)
         '''
-        A = np.vstack((A, np.array([1,0,0,0,0,0,0,0])))
-        A = np.vstack((A, np.array([0,1,0,0,0,0,0,0])))
+        A = np.vstack((A, np.array([1,0,0,0,0,0,0,0,0,0,0,0])))
+        A = np.vstack((A, np.array([0,1,0,0,0,0,0,0,0,0,0,0])))
         B = np.vstack((B, np.array([0])))
         B = np.vstack((B, np.array([0])))
 
@@ -258,8 +259,8 @@ class ContentWarp():
 
     def compute_bilinear_interpolation(self):
         for i, feat_info in enumerate(self.feat.feat):
-            corresponding_cell = self.grid.gridCell[feat_info[2][0]][feat_info[2][1]]
-            self.feat.set_coefficients(i, corresponding_cell.compute_coeff(feat_info[0]))
+            corresponding_cell = self.grid.gridCell[feat_info.grid_pos[0]][feat_info.grid_pos[1]]
+            self.feat.set_coefficients(i, corresponding_cell.compute_coeff(feat_info.pos))
         print (self.feat)
 
     def read_feature_points(self, filename):
@@ -267,4 +268,4 @@ class ContentWarp():
 
     def set_grid_info_to_feat(self):
         for i, feat_info in enumerate(self.feat.feat):
-            self.feat.set_grid_position(i, self.grid.FeatToCellCoor(feat_info[0]))
+            self.feat.set_grid_position(i, self.grid.FeatToCellCoor(feat_info.pos))
