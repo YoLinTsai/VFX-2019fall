@@ -39,7 +39,7 @@ class Cell():
         self.v4 = (v1[0],          v1[1] + width)
         self.pixels = list()
         self.compute_u_v()
-        self.collect_pixel()
+        # self.collect_pixel()
 
     def compute_coeff(self, pixel):
         x, y = pixel[0]+0.5, pixel[1]+0.5
