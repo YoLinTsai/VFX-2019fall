@@ -93,6 +93,7 @@ class ContentWarp():
                 v4_x_pos = mesh_map[(cell_row  , cell_col+1)]; v4_y_pos = v4_x_pos + 1
 
                 index_offset = cell_row * self.grid.g_height + cell_col
+                index_offset *= 16
 
                 # first triangle
                 u  = self.grid.gridCell[cell_row][cell_col].u_v[0][0]
@@ -248,10 +249,12 @@ class ContentWarp():
         print (A.shape)
         print (B.shape)
 
+        '''
         savemat('A.mat', {'A':A})
         savemat('B.mat', {'B':B})
         savemat('True.mat', {'True':true})
         sys.exit()
+        '''
 
         rank_A = np.linalg.matrix_rank(A)
         if rank_A < A.shape[1]:
@@ -264,16 +267,12 @@ class ContentWarp():
             print ('linear system is overdetermined!')
             print ('Calculating least square solution.')
 
-        X, _, _, _ = lstsq(A, B)
-        # X, _, _, _ = np.linalg.lstsq(A, B, rcond=None)
+        # X, _, _, _ = lstsq(A, B)
+        X, _, _, _ = np.linalg.lstsq(A, B, rcond=None)
 
         # round the solution to the second decimal
         X = np.array([ round(x) for x in X.reshape(-1) ]).reshape((-1, 1))
         print (X)
-
-        print (B - np.dot(A, X))
-        print (X.shape)
-
 
         # apply the result
         for i in range(X.shape[0]):
