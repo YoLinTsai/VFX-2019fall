@@ -90,6 +90,7 @@ class Grid():
         print ('press any key to close window')
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+        cv2.imwrite('vis.jpg', black)
 
     def get_grid_height(self, grid_height):
         return self.closest_factor(self.rows, grid_height)
