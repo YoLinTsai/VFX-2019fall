@@ -40,12 +40,16 @@ class ContentWarp():
         mesh_map = dict() # the map from mesh coordinates to Xi
 
         # construct map
+        true = list()
         map_id = 0 # if x[i] x[i+1] would be the row and col respectively for every even i
         for row in range(self.grid.mesh.shape[0]):
             for col in range(self.grid.mesh.shape[1]):
                 v_map[map_id] = (row, col)
                 mesh_map[(row, col)] = map_id
                 map_id += 2
+                true.append(self.grid.mesh[row][col][0])
+                true.append(self.grid.mesh[row][col][1])
+        true = np.array(true, dtype=np.float32).reshape((-1, 1))
 
         # build Data Term
         # build Simularity Transform Term
@@ -81,6 +85,7 @@ class ContentWarp():
         for cell_row in range(self.grid.g_height):
             for cell_col in range(self.grid.g_width):
                 Ws = self.grid.gridCell[cell_row][cell_col].salience
+                Ws = 1
 
                 v1_x_pos = mesh_map[(cell_row  , cell_col  )]; v1_y_pos = v1_x_pos + 1
                 v2_x_pos = mesh_map[(cell_row+1, cell_col  )]; v2_y_pos = v2_x_pos + 1
@@ -228,7 +233,6 @@ class ContentWarp():
         these two terms are added to set the upper left vertex to (0, 0) in order to verfiy
         the correctness of the implementation
         (a feature that belongs the the grid[0][0] must be specified in feat.txt)
-        '''
         constraint_A = np.zeros((2, A.shape[1]))
         constraint_A[0][0] = 1
         constraint_A[1][1] = 1
@@ -237,17 +241,17 @@ class ContentWarp():
         constraint_B[1][0] = 0
         A = np.vstack((A, constraint_A))
         B = np.vstack((B, constraint_B))
+        '''
 
         print (A)
         print (B)
         print (A.shape)
         print (B.shape)
 
-        '''
         savemat('A.mat', {'A':A})
         savemat('B.mat', {'B':B})
+        savemat('True.mat', {'True':true})
         sys.exit()
-        '''
 
         rank_A = np.linalg.matrix_rank(A)
         if rank_A < A.shape[1]:
@@ -268,6 +272,7 @@ class ContentWarp():
         print (X)
 
         print (B - np.dot(A, X))
+        print (X.shape)
 
 
         # apply the result
