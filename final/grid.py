@@ -35,6 +35,9 @@ class Grid():
         print ("grid  size:", self.g_height, self.g_width)
         print ("cell  size:", self.cell_height, self.cell_width)
 
+    def count(self):
+        return self.g_width*self.g_height
+
     def FeatToCellCoor(self, pixel):
         return (pixel[0]//self.cell_height, pixel[1]//self.cell_width)
 
@@ -53,7 +56,7 @@ class Grid():
             for col in range(self.g_width):
                 self.gridCell[row][col].collect_pixels()
 
-    def show_grid(self):
+    def show_grid(self, name='Grid'):
         # draw horizontal line
         black = np.zeros_like(self.img)
         for row in range(self.g_height):
@@ -76,8 +79,9 @@ class Grid():
                            (self.mesh[i][col+1][1], self.mesh[i][col+1][0]),
                            5, (0,0,255), thickness=-1)
 
-        cv2.namedWindow('Grid', flags=cv2.WINDOW_NORMAL)
-        cv2.imshow('Grid', black)
+        cv2.namedWindow(name, flags=cv2.WINDOW_NORMAL)
+        cv2.imshow(name, black)
+        print ('press any key to close window')
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
