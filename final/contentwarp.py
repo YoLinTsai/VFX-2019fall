@@ -1,8 +1,5 @@
 from grid import Grid
-from cell import R90
 from feature import Feature
-from scipy.io import savemat
-from scipy.linalg import lstsq
 import numpy as np
 
 class ContentWarp():
@@ -13,10 +10,10 @@ class ContentWarp():
 
         self.grid = Grid(image, grid_height, grid_width)
         self.grid.compute_salience()
-        self.grid.show_grid('before transform', self.feat.feat)
 
         self.set_grid_info_to_feat()
         self.compute_bilinear_interpolation()
+        self.feat.add_noise()
         self.build_linear_system_and_solve()
         # self.grid.compute_cell_pixels()
         self.grid.show_grid('after transform', self.feat.feat)
@@ -78,14 +75,13 @@ class ContentWarp():
             A_data[2*i+1][v3_y_pos] = tl * feat_info.interpolation_coeff[2] # V3's coeff for y coordinate
             A_data[2*i+1][v4_y_pos] = tl * feat_info.interpolation_coeff[3] # V4's coeff for y coordinate
 
-            B_data[2*i]   = tl * ( np.array(feat_info.row) + 0.5 + 0) # to grid coordinate
-            B_data[2*i+1] = tl * ( np.array(feat_info.col) + 0.5 + 0) # to grid coordinate
+            B_data[2*i]   = tl * ( np.array(feat_info.dest_row) + 0.5) # to grid coordinate
+            B_data[2*i+1] = tl * ( np.array(feat_info.dest_col) + 0.5) # to grid coordinate
 
         # simularity transfrom term for every grid
         for cell_row in range(self.grid.g_height):
             for cell_col in range(self.grid.g_width):
                 Ws = self.grid.gridCell[cell_row][cell_col].salience
-                Ws = 1
 
                 v1_x_pos = mesh_map[(cell_row  , cell_col  )]; v1_y_pos = v1_x_pos + 1
                 v2_x_pos = mesh_map[(cell_row+1, cell_col  )]; v2_y_pos = v2_x_pos + 1
@@ -244,17 +240,8 @@ class ContentWarp():
         B = np.vstack((B, constraint_B))
         '''
 
-        print (A)
-        print (B)
-        print (A.shape)
-        print (B.shape)
-
-        '''
-        savemat('A.mat', {'A':A})
-        savemat('B.mat', {'B':B})
-        savemat('True.mat', {'True':true})
-        sys.exit()
-        '''
+        print ('A shape', A.shape)
+        print ('B shape', B.shape)
 
         rank_A = np.linalg.matrix_rank(A)
         if rank_A < A.shape[1]:
@@ -267,18 +254,16 @@ class ContentWarp():
             print ('linear system is overdetermined!')
             print ('Calculating least square solution.')
 
-        # X, _, _, _ = lstsq(A, B)
         X, _, _, _ = np.linalg.lstsq(A, B, rcond=None)
 
         # round the solution to the second decimal
         X = np.array([ round(x) for x in X.reshape(-1) ]).reshape((-1, 1))
-        print (X)
 
         # apply the result
         for i in range(X.shape[0]):
             if i % 2 != 0: continue
             mesh_row, mesh_col = v_map[i]
-            self.grid.mesh[mesh_row][mesh_col] = np.array([X[i][0], X[i+1][0]])
+            self.grid.warpped_mesh[mesh_row][mesh_col] = np.array([X[i][0], X[i+1][0]])
 
         for cell_row in range(self.grid.g_height):
             for cell_col in range(self.grid.g_width):

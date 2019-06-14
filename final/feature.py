@@ -1,3 +1,4 @@
+import numpy as np
 
 '''
 feature container
@@ -18,6 +19,10 @@ class Feature():
                 #[row, col, temporal coherence coeff, bilinear interpolation coefficients, cooresponding gridCell position]
                 print (line)
                 self.feat.append(FeatInfo(int(line[1]), int(line[2]), float(line[3]), None, None))
+
+    def add_noise(self):
+        for i in range(len(self.feat)):
+            self.feat[i].set_dest(self.feat[i].row + round(5*np.random.randn()), self.feat[i].col + round(5*np.random.randn()))
 
     def set_coefficients(self, i, coeff):
         self.feat[i].interpolation_coeff = coeff
@@ -45,3 +50,9 @@ class FeatInfo():
         self.temporal_coeff = tc
         self.interpolation_coeff = bic
         self.grid_pos = gp
+        self.dest_row = None
+        self.dest_row = None
+
+    def set_dest(self, row, col):
+        self.dest_row = row
+        self.dest_col = col

@@ -30,6 +30,7 @@ class Grid():
             for col in range(self.g_width+1):
                 self.mesh[row][col] = np.array([row*self.cell_height, col*self.cell_width])
         self.mesh = np.array(self.mesh)
+        self.warpped_mesh = np.zeros_like(self.mesh)
 
         print ("image size:", self.rows, self.cols)
         print ("grid  size:", self.g_height, self.g_width)
@@ -58,30 +59,30 @@ class Grid():
 
     def show_grid(self, name='Grid', feature=None):
         # draw horizontal line
-        black = np.zeros_like(self.img)
+        black = np.zeros((self.img.shape[0] + 100, self.img.shape[1] + 100, self.img.shape[2]))
         for row in range(self.g_height):
             for i in range(self.g_width):
                 cv2.line(black,
                          (self.mesh[row][i][1], self.mesh[row][i][0]),
-                         (self.mesh[row][i+1][1], self.mesh[row][i+1][0]), (255,255,255), 5, 5)
+                         (self.mesh[row][i+1][1], self.mesh[row][i+1][0]), (255,255,255), 2, 5)
+                cv2.line(black,
+                         (self.warpped_mesh[row][i][1], self.warpped_mesh[row][i][0]),
+                         (self.warpped_mesh[row][i+1][1], self.warpped_mesh[row][i+1][0]), (0,255,0), 5, 5)
+
         for col in range(self.g_width):
             for i in range(self.g_height):
                 cv2.line(black,
                          (self.mesh[i][col][1], self.mesh[i][col][0]),
-                         (self.mesh[i+1][col][1], self.mesh[i+1][col][0]), (255,255,255), 5, 5)
-                cv2.circle(black,
-                           (self.mesh[i][col][1], self.mesh[i][col][0]),
-                           5, (0,0,255), thickness=-1)
-                cv2.circle(black,
-                           (self.mesh[i+1][col][1], self.mesh[i+1][col][0]),
-                           5, (0,0,255), thickness=-1)
-                cv2.circle(black,
-                           (self.mesh[i][col+1][1], self.mesh[i][col+1][0]),
-                           5, (0,0,255), thickness=-1)
+                         (self.mesh[i+1][col][1], self.mesh[i+1][col][0]), (255,255,255), 2, 5)
+                cv2.line(black,
+                         (self.warpped_mesh[i][col][1], self.warpped_mesh[i][col][0]),
+                         (self.warpped_mesh[i+1][col][1], self.warpped_mesh[i+1][col][0]), (0,255,0), 5, 5)
 
         if feature is not None:
             for feat in feature:
-                cv2.circle(black, (feat.col, feat.row), 5, (0,255,0), thickness=-1)
+                cv2.drawMarker(black, (feat.col, feat.row), (255,255,255), cv2.MARKER_CROSS, 30, 5)
+                cv2.drawMarker(black, (feat.dest_col, feat.dest_row), (0,255,0), cv2.MARKER_CROSS, 30, 5)
+                cv2.arrowedLine(black, (feat.col, feat.row), (feat.dest_col, feat.dest_row), (0,0,255), 5, tipLength=0.5)
 
 
         cv2.namedWindow(name, flags=cv2.WINDOW_NORMAL)
