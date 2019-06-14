@@ -1,6 +1,8 @@
 from grid import Grid
 from cell import R90
 from feature import Feature
+from scipy.io import savemat
+from scipy.linalg import lstsq
 import numpy as np
 
 class ContentWarp():
@@ -11,13 +13,13 @@ class ContentWarp():
 
         self.grid = Grid(image, grid_height, grid_width)
         self.grid.compute_salience()
-        self.grid.show_grid('before transform')
+        self.grid.show_grid('before transform', self.feat.feat)
 
         self.set_grid_info_to_feat()
         self.compute_bilinear_interpolation()
         self.build_linear_system_and_solve()
         # self.grid.compute_cell_pixels()
-        self.grid.show_grid('after transform')
+        self.grid.show_grid('after transform', self.feat.feat)
 
     def build_linear_system_and_solve(self):
         '''
@@ -241,6 +243,12 @@ class ContentWarp():
         print (A.shape)
         print (B.shape)
 
+        '''
+        savemat('A.mat', {'A':A})
+        savemat('B.mat', {'B':B})
+        sys.exit()
+        '''
+
         rank_A = np.linalg.matrix_rank(A)
         if rank_A < A.shape[1]:
             print ('linear system is underdetermined!')
@@ -252,11 +260,14 @@ class ContentWarp():
             print ('linear system is overdetermined!')
             print ('Calculating least square solution.')
 
-        X, _, _, _ = np.linalg.lstsq(A, B, rcond=None)
+        X, _, _, _ = lstsq(A, B)
+        # X, _, _, _ = np.linalg.lstsq(A, B, rcond=None)
 
         # round the solution to the second decimal
-        X = np.array([ round(x, 2) for x in X.reshape(-1) ]).reshape((-1, 1))
+        X = np.array([ round(x) for x in X.reshape(-1) ]).reshape((-1, 1))
         print (X)
+
+        print (B - np.dot(A, X))
 
 
         # apply the result

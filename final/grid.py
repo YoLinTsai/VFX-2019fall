@@ -56,7 +56,7 @@ class Grid():
             for col in range(self.g_width):
                 self.gridCell[row][col].collect_pixels()
 
-    def show_grid(self, name='Grid'):
+    def show_grid(self, name='Grid', feature=None):
         # draw horizontal line
         black = np.zeros_like(self.img)
         for row in range(self.g_height):
@@ -78,6 +78,11 @@ class Grid():
                 cv2.circle(black,
                            (self.mesh[i][col+1][1], self.mesh[i][col+1][0]),
                            5, (0,0,255), thickness=-1)
+
+        if feature is not None:
+            for feat in feature:
+                cv2.circle(black, (feat.col, feat.row), 5, (0,255,0), thickness=-1)
+
 
         cv2.namedWindow(name, flags=cv2.WINDOW_NORMAL)
         cv2.imshow(name, black)
