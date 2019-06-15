@@ -14,8 +14,9 @@ class ContentWarp():
         self.set_grid_info_to_feat()
         self.compute_bilinear_interpolation()
         self.feat.add_noise()
+
         self.build_linear_system_and_solve()
-        # self.grid.compute_cell_pixels()
+        self.grid.compute_cell_pixels()
         self.grid.show_grid('after transform', self.feat.feat)
 
     def build_linear_system_and_solve(self):
@@ -277,7 +278,6 @@ class ContentWarp():
         for i, feat_info in enumerate(self.feat.feat):
             corresponding_cell = self.grid.gridCell[feat_info.grid_pos[0]][feat_info.grid_pos[1]]
             self.feat.set_coefficients(i, corresponding_cell.compute_coeff(feat_info.pos))
-        print (self.feat)
 
     def read_feature_points(self, filename):
         self.feat.read(filename)

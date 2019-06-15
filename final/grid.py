@@ -53,6 +53,7 @@ class Grid():
                 self.gridCell[row][col].set_salience(np.linalg.norm([b_var, g_var, r_var]) + 0.5)
 
     def compute_cell_pixels(self):
+        print ('collecting pixels for every cell ...')
         for row in range(self.g_height):
             for col in range(self.g_width):
                 self.gridCell[row][col].collect_pixels()

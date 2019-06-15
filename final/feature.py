@@ -17,7 +17,6 @@ class Feature():
                 line = line.strip().split()
 
                 #[row, col, temporal coherence coeff, bilinear interpolation coefficients, cooresponding gridCell position]
-                print (line)
                 self.feat.append(FeatInfo(int(line[1]), int(line[2]), float(line[3]), None, None))
 
     def add_noise(self):
