@@ -10,14 +10,16 @@ class ContentWarp():
 
         self.grid = Grid(image, grid_height, grid_width)
         self.grid.compute_salience()
+        self.grid.compute_cell_pixels('original')
 
         self.set_grid_info_to_feat()
         self.compute_bilinear_interpolation()
         self.feat.add_noise()
 
         self.build_linear_system_and_solve()
-        self.grid.compute_cell_pixels()
+        self.grid.compute_cell_pixels('warpped')
         self.grid.show_grid('after transform', self.feat.feat)
+        self.map_texture()
 
     def build_linear_system_and_solve(self):
         '''
@@ -257,14 +259,18 @@ class ContentWarp():
 
         X, _, _, _ = np.linalg.lstsq(A, B, rcond=None)
 
-        # round the solution to the second decimal
+        # round the solution
         X = np.array([ round(x) for x in X.reshape(-1) ]).reshape((-1, 1))
 
         # apply the result
+        min_row = 10000000
+        min_col = 10000000
         for i in range(X.shape[0]):
             if i % 2 != 0: continue
             mesh_row, mesh_col = v_map[i]
             self.grid.warpped_mesh[mesh_row][mesh_col] = np.array([X[i][0], X[i+1][0]])
+            if X[i][0] < min_row: min_row = X[i][0]
+            if X[i+1][0] < min_col: min_col = X[i+1][0]
 
         for cell_row in range(self.grid.g_height):
             for cell_col in range(self.grid.g_width):
@@ -273,6 +279,21 @@ class ContentWarp():
                 v3 = self.grid.mesh[cell_row+1][cell_col+1]
                 v4 = self.grid.mesh[cell_row  ][cell_col+1]
                 self.grid.gridCell[cell_row][cell_col].set_corners(v1, v2, v3, v4)
+
+        # shift the warpped_mesh to the correct scale
+        import multiprocessing.dummy as mp
+        offset = np.array([min_row, min_col]).astype('int64')
+        def job(i):
+            for col in range(self.grid.warpped_mesh.shape[1]):
+                self.grid.warpped_mesh[i][col] -= offset
+
+        p = mp.Pool(4)
+        p.map(job, range(0, self.grid.warpped_mesh.shape[0]))
+        p.close()
+        p.join()
+
+    def map_texture(self):
+        pass
 
     def compute_bilinear_interpolation(self):
         for i, feat_info in enumerate(self.feat.feat):

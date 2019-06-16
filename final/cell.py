@@ -37,7 +37,8 @@ class Cell():
         self.v2 = (v1[0] + height, v1[1])
         self.v3 = (v1[0] + height, v1[1] + width)
         self.v4 = (v1[0],          v1[1] + width)
-        self.pixels = list()
+        self.original_pixels = list()
+        self.warpped_pixels = list()
         self.compute_u_v()
         # self.collect_pixel()
 
@@ -49,7 +50,7 @@ class Cell():
         cv4 = abs(x - self.v2[0]) * abs(y - self.v2[1])
         return np.array([cv1, cv2, cv3, cv4]) / (cv1 + cv2 + cv3 + cv4)
     
-    def collect_pixels(self): # collect all the pixels containing inside the cell
+    def collect_pixels(self, state): # collect all the pixels containing inside the cell
         '''
         DID NOT CHECK THOROUGHLY, BUGS MAY EXIST
         calculate the four functions, the definition is tricky
@@ -78,9 +79,11 @@ class Cell():
         min_col = math.floor(min([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
         end_col = math.ceil(max([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
 
+        if state == 'original': target = self.original_pixels
+        else: target = self.warpped_pixels
         for r in range(min_row, end_row):
             for c in range(min_col, end_col):
-                if inside(r, c): self.pixels.append(np.array((r, c)))
+                if inside(r, c): target.append(np.array((r, c)))
 
     def compute_u_v(self):
         self.u_v = np.zeros((8, 2))
