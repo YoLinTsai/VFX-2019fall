@@ -18,3 +18,9 @@
 *project2/Harris/HarrisDetector
 *project2/descriptor/src/descriptor
 *project3/
+
+# Directories #
+/final/paper/*
+/final/img/*
+/final/pnt/*
+/final/jpg/*
