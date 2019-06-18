@@ -223,7 +223,7 @@ def main(args):
 		all_feature_GT.append(feature_GT)
 		all_feature_3D.append(feature_3D)
 
-	
+	'''
 	img = cv2.imread('../img/0007.jpg',1)
 	img = cv2.resize(img, (640, 360), interpolation=cv2.INTER_CUBIC)
 
@@ -238,8 +238,8 @@ def main(args):
 		cv2.circle(img,(int(all_feature_GT[6][i][0]),int(all_feature_GT[6][i][1])), 2, (0,255,0), -1)
 
 	cv2.imwrite('../mretarget_0007.jpg', img)
+	'''
 	
-
 	for frameIter in range(len(all_feature_GT)):
 		predict_coord = []
 		for i in range(len(all_feature_3D[frameIter])):
