@@ -93,12 +93,14 @@ class Cell():
         min_col = math.floor(min([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
         end_col = math.ceil(max([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
 
+
         info = list()
         for r in range(min_row, end_row):
             for c in range(min_col, end_col):
                 if r < 0 or c < 0: continue # avoid the illegal pixels
                 if r >= 360 or c >= 640: continue
-                if inside(r, c): info.append(((r,c), cal_coeff(r,c)))
+                if inside(r, c):
+                    info.append(((r,c), cal_coeff(r,c)))
         return info
 
     def compute_u_v(self):

@@ -53,7 +53,6 @@ class Grid():
                 self.gridCell[row][col].set_salience(np.linalg.norm([b_var, g_var, r_var]) + 0.5)
 
     def map_texture(self, image):
-        # collects the coeff of v1, v2, v3, v4 for every pixel in side each grid cell
         self.result_img = np.zeros_like(self.img)
         '''
         for row in range(self.g_height+1):
@@ -67,26 +66,21 @@ class Grid():
                          (self.warpped_mesh[i][col][1], self.warpped_mesh[i][col][0]),
                          (self.warpped_mesh[i+1][col][1], self.warpped_mesh[i+1][col][0]), (0,255,0), 2, 1)
         '''
-        info = dict()
-        print ('computing transform coefficients')
-        for row in range(self.g_height):
-            for col in range(self.g_width):
-                info[(row, col)] = self.gridCell[row][col].compute_pixel_transform_coeff()
-        print ('mapping texture')
-        for cell, pixel_info in info.items():
-            cell_row, cell_col = cell
-            vertices = np.array(list(map(np.array, self.gridCell[cell_row][cell_col].original_v)))
-            for pos, coeff in pixel_info:
-                coeff = np.array(coeff)
-                coeff.resize((1, 4))
-                oldPos = np.dot(coeff, vertices).reshape(-1)
-                oldPos = np.array(list(map(round, oldPos))).astype('int')
-                if oldPos[0] == self.rows: oldPos[0] -= 1
-                if oldPos[1] == self.cols: oldPos[1] -= 1
-                self.result_img[pos[0]][pos[1]] = self.img[oldPos[0]][oldPos[1]]
-            # cv2.imshow(str((cell_row, cell_col)), self.result_img)
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
+        print ('computing transform coefficients and mapping texture')
+        for cell_row in range(self.g_height):
+            for cell_col in range(self.g_width):
+                pixel_info = self.gridCell[cell_row][cell_col].compute_pixel_transform_coeff()
+                vertices = np.array(list(map(np.array, self.gridCell[cell_row][cell_col].original_v)))
+                for pos, coeff in pixel_info:
+                    coeff = np.array(coeff)
+                    coeff.resize((1, 4))
+                    oldPos = np.dot(coeff, vertices).reshape(-1)
+                    if oldPos[0] == self.rows: oldPos[0] -= 1
+                    if oldPos[1] == self.cols: oldPos[1] -= 1
+                    self.result_img[pos[0]][pos[1]] = self.img[int(oldPos[0])][int(oldPos[1])]
+                # cv2.imshow(str((cell_row, cell_col)), self.result_img)
+                # cv2.waitKey(0)
+                # cv2.destroyAllWindows()
         cv2.imwrite(os.path.join('warpped', image), self.result_img)
 
     def show_grid(self, name='Grid', feature=None, show=True, save=True, image=None):
