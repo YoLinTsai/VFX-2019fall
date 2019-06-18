@@ -9,14 +9,14 @@ class Cell():
     '''
     the pixel coordinates correspond to the upper left of the grid coordinates
     (0, 0)        (0, 2)
-    V1____________V4
+    V1_____P______V4
     |      |      |
     | (0,0)| (0,1)|
-    |______|______|
+   M|______|______|O
     |      |      |
     | (1,0)| (1,1)|
     |______|______|
-    V2            V3
+    V2     N      V3
     (2, 0)         (2, 2)
 
     V1 = V2 + u1_1*(V3 - V2) + v1_1*R90*(V3 - V2)        R90: [0,  1]     self.u_v: [u1_1, v1_1]
@@ -37,10 +37,7 @@ class Cell():
         self.v2 = (v1[0] + height, v1[1])
         self.v3 = (v1[0] + height, v1[1] + width)
         self.v4 = (v1[0],          v1[1] + width)
-        self.original_pixels = list()
-        self.warpped_pixels = list()
         self.compute_u_v()
-        # self.collect_pixel()
 
     def compute_coeff(self, pixel):
         x, y = pixel[0]+0.5, pixel[1]+0.5
@@ -50,7 +47,7 @@ class Cell():
         cv4 = abs(x - self.v2[0]) * abs(y - self.v2[1])
         return np.array([cv1, cv2, cv3, cv4]) / (cv1 + cv2 + cv3 + cv4)
     
-    def collect_pixels(self, state): # collect all the pixels containing inside the cell
+    def compute_pixel_transform_coeff(self): # collect all the pixels containing inside the cell
         '''
         DID NOT CHECK THOROUGHLY, BUGS MAY EXIST
         calculate the four functions, the definition is tricky
@@ -61,29 +58,48 @@ class Cell():
         '''
         a = np.zeros(4)
         b = np.zeros(4)
-        a[0] = (self.v1[1] - self.v2[1]) / (self.v1[0] - self.v2[0]); b[0] = self.v1[0] - a[0]*self.v1[1]
-        a[1] = (self.v2[0] - self.v3[0]) / (self.v2[1] - self.v3[1]); b[1] = self.v2[1] - a[1]*self.v2[0]
-        a[2] = (self.v3[1] - self.v4[1]) / (self.v3[0] - self.v4[0]); b[2] = self.v3[0] - a[2]*self.v3[1]
-        a[3] = (self.v4[0] - self.v1[0]) / (self.v4[1] - self.v1[1]); b[3] = self.v4[1] - a[3]*self.v4[0]
+        a[0] = (self.v1[1] - self.v2[1]) / (self.v1[0] - self.v2[0]); b[0] = self.v1[1] - a[0]*self.v1[0]
+        a[1] = (self.v2[0] - self.v3[0]) / (self.v2[1] - self.v3[1]); b[1] = self.v2[0] - a[1]*self.v2[1]
+        a[2] = (self.v3[1] - self.v4[1]) / (self.v3[0] - self.v4[0]); b[2] = self.v3[1] - a[2]*self.v3[0]
+        a[3] = (self.v4[0] - self.v1[0]) / (self.v4[1] - self.v1[1]); b[3] = self.v4[0] - a[3]*self.v4[1]
 
         def inside(row, col):
             center_row, center_col = row + 0.5, col + 0.5
             if a[0]*center_row + b[0] > center_col: return False
             if a[2]*center_row + b[2] < center_col: return False
-            if a[1]*center_col + b[1] > center_row: return False
-            if a[3]*center_col + b[3] < center_row: return False
+            if a[1]*center_col + b[1] < center_row: return False
+            if a[3]*center_col + b[3] > center_row: return False
             return True
+
+        def cal_coeff(row, col):
+            def area(x, y):
+                result = 0.5 * np.array(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+                return abs(result)
+            # calculates the coeff of a pixel inside this cell p = a*v1 + b*v2 + c*v3 + d*v4
+            row, col = row+0.5, col+0.5
+            M = (row, a[0]*row+b[0])
+            N = (a[1]*col+b[1], col)
+            O = (row, a[2]*row+b[2])
+            P = (a[3]*col+b[3], col)
+            area_1 = area((self.v1[0], M[0], row, P[0]), (self.v1[1], M[1], col, P[1]))
+            area_2 = area((M[0], self.v2[0], N[0], row), (M[1], self.v2[1], N[1], col))
+            area_3 = area((row, N[0], self.v3[0], O[0]), (col, N[1], self.v3[1], O[1]))
+            area_4 = area((P[0], row, O[0], self.v4[0]), (P[1], col, O[1], self.v4[1]))
+            total = area_1 + area_2 + area_3 + area_4
+            return (area_3/total, area_4/total, area_1/total, area_2/total)
 
         min_row = math.floor(min([self.v1[0], self.v2[0], self.v3[0], self.v4[0]]))
         end_row = math.ceil(max([self.v1[0], self.v2[0], self.v3[0], self.v4[0]]))
         min_col = math.floor(min([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
         end_col = math.ceil(max([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
 
-        if state == 'original': target = self.original_pixels
-        else: target = self.warpped_pixels
+        info = list()
         for r in range(min_row, end_row):
             for c in range(min_col, end_col):
-                if inside(r, c): target.append(np.array((r, c)))
+                if r < 0 or c < 0: continue # avoid the illegal pixels
+                if r >= 360 or c >= 640: continue
+                if inside(r, c): info.append(((r,c), cal_coeff(r,c)))
+        return info
 
     def compute_u_v(self):
         self.u_v = np.zeros((8, 2))
@@ -141,10 +157,12 @@ class Cell():
         return self.v1[0], self.v2[0], self.v1[1], self.v4[1]
 
     def set_corners(self, v1, v2, v3, v4):
+        self.original_v = (self.v1, self.v2, self.v3, self.v4)
         self.v1 = v1
         self.v2 = v2
         self.v3 = v3
         self.v4 = v4
+        self.current_v = (self.v1, self.v2, self.v3, self.v4)
 
     def set_salience(self, s):
         self.salience = s

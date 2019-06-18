@@ -10,16 +10,15 @@ class ContentWarp():
 
         self.grid = Grid(image, grid_height, grid_width)
         self.grid.compute_salience()
-        self.grid.compute_cell_pixels('original')
+        # self.grid.show_grid('before transform', self.feat.feat)
 
         self.set_grid_info_to_feat()
         self.compute_bilinear_interpolation()
-        self.feat.add_noise()
 
         self.build_linear_system_and_solve()
-        self.grid.compute_cell_pixels('warpped')
-        self.grid.show_grid('after transform', self.feat.feat)
-        self.map_texture()
+        image = image.split('/')[-1]
+        self.grid.show_grid('after transform', self.feat.feat, show=False, save=True, image=image)
+        self.map_texture(image)
 
     def build_linear_system_and_solve(self):
         '''
@@ -272,28 +271,39 @@ class ContentWarp():
             if X[i][0] < min_row: min_row = X[i][0]
             if X[i+1][0] < min_col: min_col = X[i+1][0]
 
+        # shift the warpped_mesh to the correct scale, disable for now
+        '''
+        offset = np.array([min_row, min_col]).astype('int64')
+        for row in range(self.grid.warpped_mesh.shape[0]):
+            for col in range(self.grid.warpped_mesh.shape[1]):
+                self.grid.warpped_mesh[row][col] -= offset
+        '''
+
         for cell_row in range(self.grid.g_height):
             for cell_col in range(self.grid.g_width):
-                v1 = self.grid.mesh[cell_row  ][cell_col  ]
-                v2 = self.grid.mesh[cell_row+1][cell_col  ]
-                v3 = self.grid.mesh[cell_row+1][cell_col+1]
-                v4 = self.grid.mesh[cell_row  ][cell_col+1]
+                v1 = self.grid.warpped_mesh[cell_row  ][cell_col  ]
+                v2 = self.grid.warpped_mesh[cell_row+1][cell_col  ]
+                v3 = self.grid.warpped_mesh[cell_row+1][cell_col+1]
+                v4 = self.grid.warpped_mesh[cell_row  ][cell_col+1]
                 self.grid.gridCell[cell_row][cell_col].set_corners(v1, v2, v3, v4)
+        return
+        '''
+        import multiprocessing as mp
+        def job(a, b):
+            for row in range(a, b):
+                for col in range(self.grid.warpped_mesh.shape[1]):
+                    self.grid.warpped_mesh[row][col] -= offset
+        jobs = []
+        jobs.append(mp.Process(target=job, args=(0, self.grid.warpped_mesh.shape[0]//4*1)))
+        jobs.append(mp.Process(target=job, args=(self.grid.warpped_mesh.shape[0]//4*1, self.grid.warpped_mesh.shape[0]//4*2)))
+        jobs.append(mp.Process(target=job, args=(self.grid.warpped_mesh.shape[0]//4*2, self.grid.warpped_mesh.shape[0]//4*3)))
+        jobs.append(mp.Process(target=job, args=(self.grid.warpped_mesh.shape[0]//4*3, self.grid.warpped_mesh.shape[0])))
+        for j in jobs: j.start()
+        for j in jobs: j.join()
+        '''
 
-        # shift the warpped_mesh to the correct scale
-        import multiprocessing.dummy as mp
-        offset = np.array([min_row, min_col]).astype('int64')
-        def job(i):
-            for col in range(self.grid.warpped_mesh.shape[1]):
-                self.grid.warpped_mesh[i][col] -= offset
-
-        p = mp.Pool(4)
-        p.map(job, range(0, self.grid.warpped_mesh.shape[0]))
-        p.close()
-        p.join()
-
-    def map_texture(self):
-        pass
+    def map_texture(self, image):
+        self.grid.map_texture(image)
 
     def compute_bilinear_interpolation(self):
         for i, feat_info in enumerate(self.feat.feat):

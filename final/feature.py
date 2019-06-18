@@ -17,7 +17,8 @@ class Feature():
                 line = line.strip().split()
 
                 #[row, col, temporal coherence coeff, bilinear interpolation coefficients, cooresponding gridCell position]
-                self.feat.append(FeatInfo(int(line[1]), int(line[2]), float(line[3]), None, None))
+                self.feat.append(FeatInfo(round(float(line[1])), round(float(line[2])), float(line[3]), None, None))
+                self.feat[-1].set_dest(round(float(line[4])), round(float(line[5])))
 
     def add_noise(self):
         for i in range(len(self.feat)):
@@ -37,6 +38,8 @@ class Feature():
         for feat_info in self.feat:
             message += "row:{:4d}".format(feat_info.row)
             message += " col:{:4d} ".format(feat_info.col)
+            message += " d_row:{:4d}".format(feat_info.dest_row)
+            message += " d_col:{:4d} ".format(feat_info.dest_col)
             message += " coeff: " + str(feat_info.interpolation_coeff)
             message += " gridCell: " + str(feat_info.grid_pos) + '\n'
         return message
