@@ -22,7 +22,7 @@ def main():
     data = zip(image_id, feature_id)
     for image, feat in data:
         print ('Wapping image:', image[1])
-        warp = ContentWarp(image[1], feat[1], 18, 32, alpha=0.5)
+        warp = ContentWarp(image[1], feat[1], 18, 32, alpha=0.8)
         warp.warp()
 
 

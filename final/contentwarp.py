@@ -3,11 +3,11 @@ from feature import Feature
 import numpy as np
 
 class ContentWarp():
-    def __init__(self, image, feat_file, grid_height, grid_width, alpha=1):
+    def __init__(self, image, feat_file, grid_height, grid_width, alpha=1, margin=80):
         self.alpha = alpha
         self.feat = Feature() # feature object
-        self.read_feature_points(feat_file)
-        self.grid = Grid(image, grid_height, grid_width)
+        self.read_feature_points(feat_file, margin)
+        self.grid = Grid(image, grid_height, grid_width, margin)
         self.image = image
 
     def warp(self):
@@ -273,14 +273,6 @@ class ContentWarp():
             if X[i][0] < min_row: min_row = X[i][0]
             if X[i+1][0] < min_col: min_col = X[i+1][0]
 
-        # shift the warpped_mesh to the correct scale, disable for now
-        '''
-        offset = np.array([min_row, min_col]).astype('int64')
-        for row in range(self.grid.warpped_mesh.shape[0]):
-            for col in range(self.grid.warpped_mesh.shape[1]):
-                self.grid.warpped_mesh[row][col] -= offset
-        '''
-
         for cell_row in range(self.grid.g_height):
             for cell_col in range(self.grid.g_width):
                 v1 = self.grid.warpped_mesh[cell_row  ][cell_col  ]
@@ -289,20 +281,6 @@ class ContentWarp():
                 v4 = self.grid.warpped_mesh[cell_row  ][cell_col+1]
                 self.grid.gridCell[cell_row][cell_col].set_corners(v1, v2, v3, v4)
         return
-        '''
-        import multiprocessing as mp
-        def job(a, b):
-            for row in range(a, b):
-                for col in range(self.grid.warpped_mesh.shape[1]):
-                    self.grid.warpped_mesh[row][col] -= offset
-        jobs = []
-        jobs.append(mp.Process(target=job, args=(0, self.grid.warpped_mesh.shape[0]//4*1)))
-        jobs.append(mp.Process(target=job, args=(self.grid.warpped_mesh.shape[0]//4*1, self.grid.warpped_mesh.shape[0]//4*2)))
-        jobs.append(mp.Process(target=job, args=(self.grid.warpped_mesh.shape[0]//4*2, self.grid.warpped_mesh.shape[0]//4*3)))
-        jobs.append(mp.Process(target=job, args=(self.grid.warpped_mesh.shape[0]//4*3, self.grid.warpped_mesh.shape[0])))
-        for j in jobs: j.start()
-        for j in jobs: j.join()
-        '''
 
     def map_texture(self, image):
         self.grid.map_texture(image)
@@ -312,8 +290,8 @@ class ContentWarp():
             corresponding_cell = self.grid.gridCell[feat_info.grid_pos[0]][feat_info.grid_pos[1]]
             self.feat.set_coefficients(i, corresponding_cell.compute_coeff(feat_info.pos))
 
-    def read_feature_points(self, filename):
-        self.feat.read(filename)
+    def read_feature_points(self, filename, margin):
+        self.feat.read(filename, margin)
 
     def set_grid_info_to_feat(self):
         for i, feat_info in enumerate(self.feat.feat):

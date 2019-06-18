@@ -4,11 +4,14 @@ import numpy as np
 from cell import Cell
 
 class Grid():
-    def __init__(self, img, grid_height, grid_width):
-        self.img = cv2.imread(img)                           # original image
-        self.img = cv2.resize(self.img, (640, 360))
-        self.rows = self.img.shape[0]                        # image height
-        self.cols = self.img.shape[1]                        # image width
+    def __init__(self, img, grid_height, grid_width, margin):
+        original = cv2.imread(img)                           # original image
+        original = cv2.resize(original, (640, 360))
+        self.margin = margin
+        self.rows = original.shape[0]                        # image height
+        self.cols = original.shape[1]                        # image width
+        self.img = np.zeros((original.shape[0]+2*margin, original.shape[1]+2*margin, 3))
+        self.img[margin:margin+original.shape[0], margin:margin+original.shape[1], :] = original
         self.g_height = self.get_grid_height(grid_height)    # grid height
         self.g_width  = self.get_grid_width(grid_width)      # grid width
         self.cell_height = self.rows // self.g_height        # cell height
@@ -18,7 +21,7 @@ class Grid():
         self.gridCell = [[None for i in range(self.g_width)] for j in range(self.g_height)]
         for row in range(self.g_height):
             for col in range(self.g_width):
-                self.gridCell[row][col] = Cell((row*self.cell_height, col*self.cell_width),
+                self.gridCell[row][col] = Cell((row*self.cell_height+margin, col*self.cell_width+margin),
                                                 self.cell_height,
                                                 self.cell_width)
 
@@ -28,7 +31,7 @@ class Grid():
         self.mesh = [[None for i in range(self.g_width+1)] for j in range(self.g_height+1)]
         for row in range(self.g_height+1):
             for col in range(self.g_width+1):
-                self.mesh[row][col] = np.array([row*self.cell_height, col*self.cell_width])
+                self.mesh[row][col] = np.array([row*self.cell_height+margin, col*self.cell_width+margin])
         self.mesh = np.array(self.mesh)
         self.warpped_mesh = np.array(self.mesh)
 
@@ -40,7 +43,7 @@ class Grid():
         return self.g_width*self.g_height
 
     def FeatToCellCoor(self, pixel):
-        return (pixel[0]//self.cell_height, pixel[1]//self.cell_width)
+        return (pixel[0]//self.cell_height-self.margin//self.cell_height, pixel[1]//self.cell_width-self.margin//self.cell_width)
 
     def compute_salience(self):
         # the L2 norm of the color varinace inside a cell
@@ -53,23 +56,11 @@ class Grid():
                 self.gridCell[row][col].set_salience(np.linalg.norm([b_var, g_var, r_var]) + 0.5)
 
     def map_texture(self, image):
-        self.result_img = np.zeros_like(self.img)
-        '''
-        for row in range(self.g_height+1):
-            for i in range(self.g_width):
-                cv2.line(self.result_img,
-                         (self.warpped_mesh[row][i][1], self.warpped_mesh[row][i][0]),
-                         (self.warpped_mesh[row][i+1][1], self.warpped_mesh[row][i+1][0]), (0,255,0), 2, 1)
-        for col in range(self.g_width+1):
-            for i in range(self.g_height):
-                cv2.line(self.result_img,
-                         (self.warpped_mesh[i][col][1], self.warpped_mesh[i][col][0]),
-                         (self.warpped_mesh[i+1][col][1], self.warpped_mesh[i+1][col][0]), (0,255,0), 2, 1)
-        '''
         print ('computing transform coefficients and mapping texture')
+        self.result_img = np.zeros_like(self.img)
         for cell_row in range(self.g_height):
             for cell_col in range(self.g_width):
-                pixel_info = self.gridCell[cell_row][cell_col].compute_pixel_transform_coeff()
+                pixel_info = self.gridCell[cell_row][cell_col].compute_pixel_transform_coeff(self.margin)
                 vertices = np.array(list(map(np.array, self.gridCell[cell_row][cell_col].original_v)))
                 for pos, coeff in pixel_info:
                     coeff = np.array(coeff)
@@ -77,7 +68,12 @@ class Grid():
                     oldPos = np.dot(coeff, vertices).reshape(-1)
                     if oldPos[0] == self.rows: oldPos[0] -= 1
                     if oldPos[1] == self.cols: oldPos[1] -= 1
-                    self.result_img[pos[0]][pos[1]] = self.img[int(oldPos[0])][int(oldPos[1])]
+
+                    # safety procedure
+                    if self.margin <= oldPos[0] and oldPos[0] < self.rows+self.margin and self.margin <= oldPos[1] and oldPos[1] < self.cols+self.margin:
+                        self.result_img[pos[0]][pos[1]] = self.img[int(oldPos[0])][int(oldPos[1])]
+                    else:
+                        print ('invalid values for oldPos', oldPos)
                 # cv2.imshow(str((cell_row, cell_col)), self.result_img)
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()

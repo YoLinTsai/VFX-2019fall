@@ -10,15 +10,15 @@ class Feature():
         if filename is not None: self.read(filename)
         self.feat = list()
 
-    def read(self, filename):
+    def read(self, filename, margin):
         with open(filename, 'r') as f:
             for line in f:
                 if line.startswith('// '): continue
                 line = line.strip().split()
 
                 #[row, col, temporal coherence coeff, bilinear interpolation coefficients, cooresponding gridCell position]
-                self.feat.append(FeatInfo(round(float(line[1])), round(float(line[2])), float(line[3]), None, None))
-                self.feat[-1].set_dest(round(float(line[4])), round(float(line[5])))
+                self.feat.append(FeatInfo(round(float(line[1]))+margin, round(float(line[2]))+margin, float(line[3]), None, None))
+                self.feat[-1].set_dest(round(float(line[4]))+margin, round(float(line[5]))+margin)
 
     def add_noise(self):
         for i in range(len(self.feat)):

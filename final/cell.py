@@ -47,7 +47,7 @@ class Cell():
         cv4 = abs(x - self.v2[0]) * abs(y - self.v2[1])
         return np.array([cv1, cv2, cv3, cv4]) / (cv1 + cv2 + cv3 + cv4)
     
-    def compute_pixel_transform_coeff(self): # collect all the pixels containing inside the cell
+    def compute_pixel_transform_coeff(self, margin): # collect all the pixels containing inside the cell
         '''
         DID NOT CHECK THOROUGHLY, BUGS MAY EXIST
         calculate the four functions, the definition is tricky
@@ -98,7 +98,7 @@ class Cell():
         for r in range(min_row, end_row):
             for c in range(min_col, end_col):
                 if r < 0 or c < 0: continue # avoid the illegal pixels
-                if r >= 360 or c >= 640: continue
+                if r >= 360+margin or c >= 640+margin: continue
                 if inside(r, c):
                     info.append(((r,c), cal_coeff(r,c)))
         return info
