@@ -1,1 +1,1 @@
-python3 PathPlanning.py --camera_data ../camera.txt --feature_dir ../pnt --warping_coord_dir ../feature --img ../img/0007.jpg
+python3 PathPlanning.py --camera_data ../camera/camera.txt --feature_dir ../pnt --warping_coord_dir ../feature --img ../img/0007.jpg

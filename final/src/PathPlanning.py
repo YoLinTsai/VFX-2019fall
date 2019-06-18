@@ -85,10 +85,22 @@ def window_filter(euler, window_size):
 	for i in range(datalen):
 		if i>=half_WS and i<(datalen-half_WS):
 			result.append(np.mean(np.array(euler[(i-half_WS):(i+half_WS+1)]), axis = 0))
+		elif i>=half_WS:
+			result.append(np.mean(np.array(euler[(i-half_WS):datalen]), axis = 0))
 		else:
-			result.append(euler[i])
+			result.append(np.mean(np.array(euler[0:(i+half_WS+1)]), axis = 0))
 
 	return result
+
+def euler_linearized(data):
+	data = np.array(data)
+	_x = linear_interpolation(data[:,0])
+	_y = linear_interpolation(data[:,1])
+	_z = linear_interpolation(data[:,2])
+	result = []
+	for i in range(len(_x)):
+		result.append([_x[i], _y[i], _z[i]])
+	return np.array(result)
 
 def main(args):
 	f_camera = open(args.camera_data, "r")
@@ -152,6 +164,16 @@ def main(args):
 	_y = linear_interpolation(Camera_3D_data[:,1])
 	_z = linear_interpolation(Camera_3D_data[:,2])
 	
+	smooth_camer_t_data = []
+	for i in range(len(_x)):
+		t = np.zeros(shape=(3,4)) 
+		t[0, 0] = 1
+		t[1, 1] = 1
+		t[2, 2] = 1
+		t[0, 3] = -float(_x[i])
+		t[1, 3] = -float(_y[i])
+		t[2, 3] = -float(_z[i])
+		smooth_camer_t_data.append(t)
 	'''
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
@@ -166,13 +188,13 @@ def main(args):
 		euler = rotationMatrixToEulerAngles(camera_rotation_data[i])
 		camera_eular_data.append(euler)
 
-	smooth_camera_eular_data = window_filter(camera_eular_data, 5)
-	print(np.array(smooth_camera_eular_data[0:5]))
-	print(np.array(camera_eular_data[0:5]))
+	#smooth_camera_eular_data = window_filter(camera_eular_data, 12)
+	smooth_camera_eular_data = euler_linearized(camera_eular_data)
 
 	for i in range(len(smooth_camera_eular_data)):
 		_R = np.array(eulerAnglesToRotationMatrix(smooth_camera_eular_data[i]))
 		smooth_camera_rotation_data.append(_R)
+
 	smooth_camera_rotation_data = np.array(smooth_camera_rotation_data)
 
 	feature_file_name = []
@@ -201,8 +223,8 @@ def main(args):
 		all_feature_GT.append(feature_GT)
 		all_feature_3D.append(feature_3D)
 
-	'''
-	img = cv2.imread(args.img,1)
+	
+	img = cv2.imread('../img/0007.jpg',1)
 	img = cv2.resize(img, (640, 360), interpolation=cv2.INTER_CUBIC)
 
 	predict_coord = []
@@ -216,13 +238,13 @@ def main(args):
 		cv2.circle(img,(int(all_feature_GT[6][i][0]),int(all_feature_GT[6][i][1])), 2, (0,255,0), -1)
 
 	cv2.imwrite('../mretarget_0007.jpg', img)
-	'''
+	
 
 	for frameIter in range(len(all_feature_GT)):
 		predict_coord = []
 		for i in range(len(all_feature_3D[frameIter])):
 			homocoord = np.append(np.array(all_feature_3D[frameIter][i]), [1])
-			predict = np.dot(camera_f_data[frameIter], np.dot(smooth_camera_rotation_data[frameIter], np.dot(camera_t_data[frameIter], homocoord))) 
+			predict = np.dot(camera_f_data[frameIter], np.dot(smooth_camera_rotation_data[frameIter], np.dot(smooth_camer_t_data[frameIter], homocoord))) 
 			predict_coord.append([int(predict[0]/predict[2]+0.5*(640-1)), int(predict[1]/predict[2]+0.5*(360-1))])
 
 		fn = os.path.join(args.warping_coord_dir, '{0:04}.txt'.format(frameIter+1))
@@ -234,6 +256,30 @@ def main(args):
 					int(all_feature_GT[frameIter][i][0]),
 					predict_coord[i][1],
 					predict_coord[i][0]))
+
+	with open('../blender/blender.txt', 'w') as blender_f:
+		blender_f.write('#Camera Parameters\n')
+		for frameIter in range(len(all_feature_GT)):
+			blender_f.write('scene.frame_current = {}\n'.format(frameIter+1))
+			blender_f.write('vcam.data.lens = 48.796461\n')
+			blender_f.write('vcam.matrix_world = (([{:.6f},{:.6f},{:.6f},0.000000], [{:.6f},{:.6f},{:.6f},0.000000], [{:.6f},{:.6f},{:.6f},0.000000], [{:.6f},{:.6f},{:.6f},1.000000])) \n'.format(
+												smooth_camera_rotation_data[frameIter][0,0],
+												smooth_camera_rotation_data[frameIter][0,1],
+												smooth_camera_rotation_data[frameIter][0,2],
+												-smooth_camera_rotation_data[frameIter][1,0],
+												-smooth_camera_rotation_data[frameIter][1,1],
+												-smooth_camera_rotation_data[frameIter][1,2],
+												-smooth_camera_rotation_data[frameIter][2,0],
+												-smooth_camera_rotation_data[frameIter][2,1],
+												-smooth_camera_rotation_data[frameIter][2,2],
+												_x[frameIter], _y[frameIter], _z[frameIter]))
+			blender_f.write('vcam.keyframe_insert(\'location\')\n')
+			blender_f.write('vcam.keyframe_insert(\'scale\')\n')
+			blender_f.write('vcam.keyframe_insert(\'rotation_euler\')\n')
+			blender_f.write('vcam.data.keyframe_insert(\'lens\')\n')
+			blender_f.write('\n')
+
+			
 
 
 def parse():
