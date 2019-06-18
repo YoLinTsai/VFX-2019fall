@@ -15,8 +15,6 @@ class Grid():
         self.cell_width  = self.cols // self.g_width         # cell width
 
         # create gridCell map, record by cell
-        # create cell mask, query by pixel location
-        self.cellmask = np.zeros((self.rows, self.cols, 2))
         self.gridCell = [[None for i in range(self.g_width)] for j in range(self.g_height)]
         for row in range(self.g_height):
             for col in range(self.g_width):

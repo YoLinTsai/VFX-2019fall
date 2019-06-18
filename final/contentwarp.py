@@ -7,18 +7,20 @@ class ContentWarp():
         self.alpha = alpha
         self.feat = Feature() # feature object
         self.read_feature_points(feat_file)
-
         self.grid = Grid(image, grid_height, grid_width)
+        self.image = image
+
+    def warp(self):
         self.grid.compute_salience()
-        # self.grid.show_grid('before transform', self.feat.feat)
 
         self.set_grid_info_to_feat()
         self.compute_bilinear_interpolation()
 
         self.build_linear_system_and_solve()
-        image = image.split('/')[-1]
-        self.grid.show_grid('after transform', self.feat.feat, show=False, save=True, image=image)
-        self.map_texture(image)
+        self.image = self.image.split('/')[-1]
+        self.grid.show_grid('after transform', self.feat.feat, show=False, save=True, image=self.image)
+        self.map_texture(self.image)
+
 
     def build_linear_system_and_solve(self):
         '''
