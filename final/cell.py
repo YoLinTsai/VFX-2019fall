@@ -59,8 +59,6 @@ class Cell():
         info = list()
         for r in range(min_row, end_row):
             for c in range(min_col, end_col):
-                if r < 0 or c < 0: continue # avoid the illegal pixels
-                if r >= 360+margin or c >= 640+margin: continue
                 if inside(r, c):
                     info.append(((r,c), self.cal_coeff(r,c)))
         return info
