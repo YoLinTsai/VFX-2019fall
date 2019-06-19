@@ -1,8 +1,10 @@
 from grid import Grid
 from feature import Feature
 import numpy as np
+import sys
+import cv2
 
-class ContentWarp():
+class Warp():
     def __init__(self, image, feat_file, grid_height, grid_width, alpha=1, margin=80):
         self.alpha = alpha
         self.feat = Feature() # feature object
@@ -10,17 +12,37 @@ class ContentWarp():
         self.grid = Grid(image, grid_height, grid_width, margin)
         self.image = image
 
-    def warp(self):
+        # the should not change after global warpping, setting this initially is easier
         self.grid.compute_salience()
-
         self.set_grid_info_to_feat()
+
+    def warp(self):
+        self.GlobalWarp()
+        self.ContentWarp()
+
+    def GlobalWarp(self):
+        # find the homography by RANSAC
+        src = np.zeros((self.feat.size(), 2))
+        dest = np.zeros((self.feat.size(), 2))
+        for i, feat_info in enumerate(self.feat.feat):
+            src[i][0] = feat_info.col
+            src[i][1] = feat_info.row
+            dest[i][0] = feat_info.dest_col
+            dest[i][1] = feat_info.dest_row
+        H, _ = cv2.findHomography(src, dest, cv2.RANSAC, 5.0)
+        
+        # apply global transform
+        self.grid.GlobalWarp(H)
+        self.grid.show_grid('global', self.feat.feat, show=True, save=False)
+        sys.exit()
+
+    def ContentWarp(self):
         self.compute_bilinear_interpolation()
 
         self.build_linear_system_and_solve()
         self.image = self.image.split('/')[-1]
         self.grid.show_grid('after transform', self.feat.feat, show=False, save=True, image=self.image)
         self.map_texture(self.image)
-
 
     def build_linear_system_and_solve(self):
         '''

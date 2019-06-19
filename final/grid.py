@@ -55,6 +55,34 @@ class Grid():
                 r_var = np.var(self.img[row_min:row_end, col_min:col_end, 2])
                 self.gridCell[row][col].set_salience(np.linalg.norm([b_var, g_var, r_var]) + 0.5)
 
+    def GlobalWarp(self, H):
+        # transform mesh
+        for mesh_row in range(self.warpped_mesh.shape[0]):
+            for mesh_col in range(self.warpped_mesh.shape[1]):
+                p = np.array([self.warpped_mesh[mesh_row][mesh_col][1], self.warpped_mesh[mesh_row][mesh_col][0], 1])
+                p_prime = np.dot(H, p)[:-1]
+                self.warpped_mesh[mesh_row][mesh_col] = p_prime[::-1]
+
+        # update grid vertices
+        for cell_row in range(self.g_height):
+            for cell_col in range(self.g_width):
+                v1 = self.warpped_mesh[cell_row  ][cell_col  ]
+                v2 = self.warpped_mesh[cell_row+1][cell_col  ]
+                v3 = self.warpped_mesh[cell_row+1][cell_col+1]
+                v4 = self.warpped_mesh[cell_row  ][cell_col+1]
+                self.gridCell[cell_row][cell_col].set_corners(v1, v2, v3, v4)
+
+        # transform pixel
+        self.container = np.zeros_like(self.img)
+        for row in range(self.margin, self.margin+self.rows):
+            for col in range(self.margin, self.margin+self.cols):
+                p = np.array([col, row, 1])
+                p_prime = np.dot(H, p).round().astype('int')[:-1][::-1]
+                self.container[p_prime[0]][p_prime[1]] = self.img[row][col]
+
+        self.img = np.array(self.container)
+        del self.container
+
     def map_texture(self, image):
         print ('computing transform coefficients and mapping texture')
         self.result_img = np.zeros_like(self.img)
@@ -104,7 +132,7 @@ class Grid():
             for feat in feature:
                 cv2.drawMarker(black, (feat.col, feat.row), (255,255,255), cv2.MARKER_CROSS, 5, 2)
                 cv2.drawMarker(black, (feat.dest_col, feat.dest_row), (0,255,0), cv2.MARKER_CROSS, 2, 1)
-                cv2.arrowedLine(black, (feat.col, feat.row), (feat.dest_col, feat.dest_row), (0,0,255), 2, tipLength=0.5)
+                cv2.arrowedLine(black, (feat.col, feat.row), (feat.dest_col, feat.dest_row), (0,0,255), 1, tipLength=0.3)
 
         if show:
             cv2.namedWindow(name, flags=cv2.WINDOW_NORMAL)
