@@ -29,8 +29,8 @@ class Warp():
             src[i][1] = feat_info.row
             dest[i][0] = feat_info.dest_col
             dest[i][1] = feat_info.dest_row
-        H, _ = cv2.findHomography(src, dest, cv2.RANSAC, 5.0)
-        
+        H, _ = cv2.findHomography(src, dest, 0, 5.0)
+
         # apply global transform
         self.grid.GlobalWarp(H)
 
@@ -39,6 +39,8 @@ class Warp():
             p = np.array([feat_info.col, feat_info.row, 1])
             p_prime = np.dot(H, p)[:-1].round().astype('int')
             self.feat.feat[i].set_global(p_prime[1], p_prime[0])
+
+        print ('global warp complete')
 
     def ContentWarp(self):
         self.compute_bilinear_interpolation()
@@ -249,17 +251,6 @@ class Warp():
 
         A = np.vstack((A_data, A_simularity[1:]))
         B = np.vstack((B_data, B_simularity[1:]))
-
-        rank_A = np.linalg.matrix_rank(A)
-        if rank_A < A.shape[1]:
-            print ('linear system is underdetermined!')
-            print ('rank A:', rank_A, '<', A.shape[1])
-            print ('Solution is not unique!')
-        elif rank_A == A.shape[1]:
-            print ('Solution is unique.')
-        else:
-            print ('linear system is overdetermined!')
-            print ('Calculating least square solution.')
 
         X, _, _, _ = np.linalg.lstsq(A, B, rcond=None)
 

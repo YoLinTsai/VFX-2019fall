@@ -142,19 +142,25 @@ class Cell():
         self.a[3] = (self.v4[0] - self.v1[0]) / (self.v4[1] - self.v1[1]); self.b[3] = self.v4[0] - self.a[3]*self.v4[1]
 
     def cal_coeff(self, row, col):
+        '''
         def area(x, y):
             result = 0.5 * np.array(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
             return abs(result)
+        '''
+        def area(a, b, c, d):
+            ret = 0.5 * ( (b[0] - a[0])*(c[1] - a[1]) - (c[0] - a[0])*(b[1] - a[1]) )
+            ret += 0.5 * ( (b[0] - d[0])*(c[1] - d[1]) - (c[0] - d[0])*(b[1] - d[1]) )
+            return ret
         # calculates the coeff of a pixel inside this cell p = a*v1 + b*v2 + c*v3 + d*v4
         row, col = row+0.5, col+0.5
         M = (row, self.a[0]*row+self.b[0])
         N = (self.a[1]*col+self.b[1], col)
         O = (row, self.a[2]*row+self.b[2])
         P = (self.a[3]*col+self.b[3], col)
-        area_1 = area((self.v1[0], M[0], row, P[0]), (self.v1[1], M[1], col, P[1]))
-        area_2 = area((M[0], self.v2[0], N[0], row), (M[1], self.v2[1], N[1], col))
-        area_3 = area((row, N[0], self.v3[0], O[0]), (col, N[1], self.v3[1], O[1]))
-        area_4 = area((P[0], row, O[0], self.v4[0]), (P[1], col, O[1], self.v4[1]))
+        area_1 = area(self.v1, M, (row, col), P)
+        area_2 = area(M, self.v2, N, (row, col))
+        area_3 = area((row, col), N, self.v3, O)
+        area_4 = area(P, (row, col), O, self.v4)
         total = area_1 + area_2 + area_3 + area_4
         return (area_3/total, area_4/total, area_1/total, area_2/total)
 

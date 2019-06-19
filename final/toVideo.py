@@ -9,7 +9,9 @@ path = [ os.path.join(args.sequence_dir, p) for p in os.listdir(args.sequence_di
 images = []
 
 for img in path:
-    images.append((int(img.split('/')[-1].split('.')[0]), cv2.imread(img)))
+    imagefile = img.split('/')[-1]
+    if imagefile.startswith('.'): continue
+    images.append((int(imagefile.split('.')[0]), cv2.imread(img)))
 
 images.sort(key=lambda tup: tup[0])
 

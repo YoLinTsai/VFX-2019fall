@@ -88,10 +88,10 @@ class Grid():
                     oldPos = np.dot(coeff, vertices).reshape(-1)
 
                     # safety procedure
-                    if self.margin <= oldPos[0] and oldPos[0] < self.rows+self.margin and self.margin <= oldPos[1] and oldPos[1] < self.cols+self.margin:
-                        self.result_img[pos[0]][pos[1]] = self.img[int(oldPos[0])][int(oldPos[1])]
-                    else:
-                        print ('invalid values for oldPos', oldPos)
+                    # if self.margin <= oldPos[0] and oldPos[0] < self.rows+self.margin and self.margin <= oldPos[1] and oldPos[1] < self.cols+self.margin:
+                    self.result_img[pos[0]][pos[1]] = self.img[int(oldPos[0])][int(oldPos[1])]
+                    # else:
+                        # print ('invalid values for oldPos', oldPos)
                 # cv2.imshow(str((cell_row, cell_col)), self.result_img)
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
