@@ -37,62 +37,24 @@ class Cell():
         self.v2 = (v1[0] + height, v1[1])
         self.v3 = (v1[0] + height, v1[1] + width)
         self.v4 = (v1[0],          v1[1] + width)
-        self.compute_u_v()
+        self.original_v = (self.v1, self.v2, self.v3, self.v4)
 
     def compute_coeff(self, pixel):
-        x, y = pixel[0]+0.5, pixel[1]+0.5
-        cv1 = abs(x - self.v3[0]) * abs(y - self.v3[1])
-        cv2 = abs(x - self.v4[0]) * abs(y - self.v4[1])
-        cv3 = abs(x - self.v1[0]) * abs(y - self.v1[1])
-        cv4 = abs(x - self.v2[0]) * abs(y - self.v2[1])
-        return np.array([cv1, cv2, cv3, cv4]) / (cv1 + cv2 + cv3 + cv4)
+        return self.cal_coeff(pixel[0], pixel[1])
     
-    def compute_pixel_transform_coeff(self, margin): # collect all the pixels containing inside the cell
-        '''
-        DID NOT CHECK THOROUGHLY, BUGS MAY EXIST
-        calculate the four functions, the definition is tricky
-        V1,V2: f0 = col = a0*row+b0
-        V2,V3: f1 = row = a1*col+b1
-        V3,V4: f2 = col = a2*row+b2
-        V4,V1: f3 = row = a3*col+b3
-        '''
-        a = np.zeros(4)
-        b = np.zeros(4)
-        a[0] = (self.v1[1] - self.v2[1]) / (self.v1[0] - self.v2[0]); b[0] = self.v1[1] - a[0]*self.v1[0]
-        a[1] = (self.v2[0] - self.v3[0]) / (self.v2[1] - self.v3[1]); b[1] = self.v2[0] - a[1]*self.v2[1]
-        a[2] = (self.v3[1] - self.v4[1]) / (self.v3[0] - self.v4[0]); b[2] = self.v3[1] - a[2]*self.v3[0]
-        a[3] = (self.v4[0] - self.v1[0]) / (self.v4[1] - self.v1[1]); b[3] = self.v4[0] - a[3]*self.v4[1]
-
+    def compute_pixel_transform_coeff(self, margin):
         def inside(row, col):
             center_row, center_col = row + 0.5, col + 0.5
-            if a[0]*center_row + b[0] > center_col: return False
-            if a[2]*center_row + b[2] < center_col: return False
-            if a[1]*center_col + b[1] < center_row: return False
-            if a[3]*center_col + b[3] > center_row: return False
+            if self.a[0]*center_row + self.b[0] > center_col: return False
+            if self.a[2]*center_row + self.b[2] < center_col: return False
+            if self.a[1]*center_col + self.b[1] < center_row: return False
+            if self.a[3]*center_col + self.b[3] > center_row: return False
             return True
-
-        def cal_coeff(row, col):
-            def area(x, y):
-                result = 0.5 * np.array(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
-                return abs(result)
-            # calculates the coeff of a pixel inside this cell p = a*v1 + b*v2 + c*v3 + d*v4
-            row, col = row+0.5, col+0.5
-            M = (row, a[0]*row+b[0])
-            N = (a[1]*col+b[1], col)
-            O = (row, a[2]*row+b[2])
-            P = (a[3]*col+b[3], col)
-            area_1 = area((self.v1[0], M[0], row, P[0]), (self.v1[1], M[1], col, P[1]))
-            area_2 = area((M[0], self.v2[0], N[0], row), (M[1], self.v2[1], N[1], col))
-            area_3 = area((row, N[0], self.v3[0], O[0]), (col, N[1], self.v3[1], O[1]))
-            area_4 = area((P[0], row, O[0], self.v4[0]), (P[1], col, O[1], self.v4[1]))
-            total = area_1 + area_2 + area_3 + area_4
-            return (area_3/total, area_4/total, area_1/total, area_2/total)
 
         min_row = math.floor(min([self.v1[0], self.v2[0], self.v3[0], self.v4[0]]))
         end_row = math.ceil(max([self.v1[0], self.v2[0], self.v3[0], self.v4[0]]))
         min_col = math.floor(min([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
         end_col = math.ceil(max([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
-
 
         info = list()
         for r in range(min_row, end_row):
@@ -100,7 +62,7 @@ class Cell():
                 if r < 0 or c < 0: continue # avoid the illegal pixels
                 if r >= 360+margin or c >= 640+margin: continue
                 if inside(r, c):
-                    info.append(((r,c), cal_coeff(r,c)))
+                    info.append(((r,c), self.cal_coeff(r,c)))
         return info
 
     def compute_u_v(self):
@@ -159,12 +121,42 @@ class Cell():
         return self.v1[0], self.v2[0], self.v1[1], self.v4[1]
 
     def set_corners(self, v1, v2, v3, v4):
-        self.original_v = (self.v1, self.v2, self.v3, self.v4)
         self.v1 = v1
         self.v2 = v2
         self.v3 = v3
         self.v4 = v4
-        self.current_v = (self.v1, self.v2, self.v3, self.v4)
+
+    def cal_boundary(self):
+        '''
+        calculate the four functions, the definition is tricky
+        V1,V2: f0 = col = a0*row+b0
+        V2,V3: f1 = row = a1*col+b1
+        V3,V4: f2 = col = a2*row+b2
+        V4,V1: f3 = row = a3*col+b3
+        '''
+        self.a = np.zeros(4)
+        self.b = np.zeros(4)
+        self.a[0] = (self.v1[1] - self.v2[1]) / (self.v1[0] - self.v2[0]); self.b[0] = self.v1[1] - self.a[0]*self.v1[0]
+        self.a[1] = (self.v2[0] - self.v3[0]) / (self.v2[1] - self.v3[1]); self.b[1] = self.v2[0] - self.a[1]*self.v2[1]
+        self.a[2] = (self.v3[1] - self.v4[1]) / (self.v3[0] - self.v4[0]); self.b[2] = self.v3[1] - self.a[2]*self.v3[0]
+        self.a[3] = (self.v4[0] - self.v1[0]) / (self.v4[1] - self.v1[1]); self.b[3] = self.v4[0] - self.a[3]*self.v4[1]
+
+    def cal_coeff(self, row, col):
+        def area(x, y):
+            result = 0.5 * np.array(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+            return abs(result)
+        # calculates the coeff of a pixel inside this cell p = a*v1 + b*v2 + c*v3 + d*v4
+        row, col = row+0.5, col+0.5
+        M = (row, self.a[0]*row+self.b[0])
+        N = (self.a[1]*col+self.b[1], col)
+        O = (row, self.a[2]*row+self.b[2])
+        P = (self.a[3]*col+self.b[3], col)
+        area_1 = area((self.v1[0], M[0], row, P[0]), (self.v1[1], M[1], col, P[1]))
+        area_2 = area((M[0], self.v2[0], N[0], row), (M[1], self.v2[1], N[1], col))
+        area_3 = area((row, N[0], self.v3[0], O[0]), (col, N[1], self.v3[1], O[1]))
+        area_4 = area((P[0], row, O[0], self.v4[0]), (P[1], col, O[1], self.v4[1]))
+        total = area_1 + area_2 + area_3 + area_4
+        return (area_3/total, area_4/total, area_1/total, area_2/total)
 
     def set_salience(self, s):
         self.salience = s

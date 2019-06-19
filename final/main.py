@@ -21,9 +21,8 @@ def main():
 
     data = zip(image_id, feature_id)
     for image, feat in data:
-        if image[0] != 110: continue
         print ('Wapping image:', image[1])
-        warp = Warp(image[1], feat[1], 18, 32, alpha=0.8)
+        warp = Warp(image[1], feat[1], 18, 32, alpha=0.5)
         warp.warp()
 
 

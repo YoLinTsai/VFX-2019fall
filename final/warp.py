@@ -33,12 +33,16 @@ class Warp():
         
         # apply global transform
         self.grid.GlobalWarp(H)
-        self.grid.show_grid('global', self.feat.feat, show=True, save=False)
-        sys.exit()
+
+        # features need to be transformed as well
+        for i, feat_info in enumerate(self.feat.feat):
+            p = np.array([feat_info.col, feat_info.row, 1])
+            p_prime = np.dot(H, p)[:-1].round().astype('int')
+            self.feat.feat[i].set_global(p_prime[1], p_prime[0])
 
     def ContentWarp(self):
         self.compute_bilinear_interpolation()
-
+        self.grid.compute_u_v()
         self.build_linear_system_and_solve()
         self.image = self.image.split('/')[-1]
         self.grid.show_grid('after transform', self.feat.feat, show=False, save=True, image=self.image)
@@ -63,20 +67,15 @@ class Warp():
         mesh_map = dict() # the map from mesh coordinates to Xi
 
         # construct map
-        true = list()
         map_id = 0 # if x[i] x[i+1] would be the row and col respectively for every even i
-        for row in range(self.grid.mesh.shape[0]):
-            for col in range(self.grid.mesh.shape[1]):
+        for row in range(self.grid.global_mesh.shape[0]):
+            for col in range(self.grid.global_mesh.shape[1]):
                 v_map[map_id] = (row, col)
                 mesh_map[(row, col)] = map_id
                 map_id += 2
-                true.append(self.grid.mesh[row][col][0])
-                true.append(self.grid.mesh[row][col][1])
-        true = np.array(true, dtype=np.float32).reshape((-1, 1))
 
         # build Data Term
         # build Simularity Transform Term
-        # temporarily set the new feature points to row, col
         A_simularity = np.zeros((self.grid.count()*16, 2*len(v_map)))
         B_simularity = np.zeros((self.grid.count()*16, 1))
         A_data = np.zeros((2*self.feat.size(), 2*len(v_map)))
@@ -251,24 +250,6 @@ class Warp():
         A = np.vstack((A_data, A_simularity[1:]))
         B = np.vstack((B_data, B_simularity[1:]))
 
-        '''
-        due to the fact that during testing the system is very likely to be under-determined,
-        these two terms are added to set the upper left vertex to (0, 0) in order to verfiy
-        the correctness of the implementation
-        (a feature that belongs the the grid[0][0] must be specified in feat.txt)
-        constraint_A = np.zeros((2, A.shape[1]))
-        constraint_A[0][0] = 1
-        constraint_A[1][1] = 1
-        constraint_B = np.zeros((2, 1))
-        constraint_B[0][0] = 0
-        constraint_B[1][0] = 0
-        A = np.vstack((A, constraint_A))
-        B = np.vstack((B, constraint_B))
-        '''
-
-        print ('A shape', A.shape)
-        print ('B shape', B.shape)
-
         rank_A = np.linalg.matrix_rank(A)
         if rank_A < A.shape[1]:
             print ('linear system is underdetermined!')
@@ -286,14 +267,10 @@ class Warp():
         X = np.array([ round(x) for x in X.reshape(-1) ]).reshape((-1, 1))
 
         # apply the result
-        min_row = 10000000
-        min_col = 10000000
         for i in range(X.shape[0]):
             if i % 2 != 0: continue
             mesh_row, mesh_col = v_map[i]
             self.grid.warpped_mesh[mesh_row][mesh_col] = np.array([X[i][0], X[i+1][0]])
-            if X[i][0] < min_row: min_row = X[i][0]
-            if X[i+1][0] < min_col: min_col = X[i+1][0]
 
         for cell_row in range(self.grid.g_height):
             for cell_col in range(self.grid.g_width):
@@ -310,7 +287,7 @@ class Warp():
     def compute_bilinear_interpolation(self):
         for i, feat_info in enumerate(self.feat.feat):
             corresponding_cell = self.grid.gridCell[feat_info.grid_pos[0]][feat_info.grid_pos[1]]
-            self.feat.set_coefficients(i, corresponding_cell.compute_coeff(feat_info.pos))
+            self.feat.set_coefficients(i, corresponding_cell.compute_coeff(feat_info.global_pos))
 
     def read_feature_points(self, filename, margin):
         self.feat.read(filename, margin)

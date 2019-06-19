@@ -34,6 +34,7 @@ class Grid():
                 self.mesh[row][col] = np.array([row*self.cell_height+margin, col*self.cell_width+margin])
         self.mesh = np.array(self.mesh)
         self.warpped_mesh = np.array(self.mesh)
+        self.global_mesh = np.array(self.mesh)
 
         print ("image size:", self.rows, self.cols)
         print ("grid  size:", self.g_height, self.g_width)
@@ -57,45 +58,34 @@ class Grid():
 
     def GlobalWarp(self, H):
         # transform mesh
-        for mesh_row in range(self.warpped_mesh.shape[0]):
-            for mesh_col in range(self.warpped_mesh.shape[1]):
-                p = np.array([self.warpped_mesh[mesh_row][mesh_col][1], self.warpped_mesh[mesh_row][mesh_col][0], 1])
+        for mesh_row in range(self.global_mesh.shape[0]):
+            for mesh_col in range(self.global_mesh.shape[1]):
+                p = np.array([self.global_mesh[mesh_row][mesh_col][1], self.global_mesh[mesh_row][mesh_col][0], 1])
                 p_prime = np.dot(H, p)[:-1]
-                self.warpped_mesh[mesh_row][mesh_col] = p_prime[::-1]
+                self.global_mesh[mesh_row][mesh_col] = p_prime[::-1]
 
         # update grid vertices
         for cell_row in range(self.g_height):
             for cell_col in range(self.g_width):
-                v1 = self.warpped_mesh[cell_row  ][cell_col  ]
-                v2 = self.warpped_mesh[cell_row+1][cell_col  ]
-                v3 = self.warpped_mesh[cell_row+1][cell_col+1]
-                v4 = self.warpped_mesh[cell_row  ][cell_col+1]
+                v1 = self.global_mesh[cell_row  ][cell_col  ]
+                v2 = self.global_mesh[cell_row+1][cell_col  ]
+                v3 = self.global_mesh[cell_row+1][cell_col+1]
+                v4 = self.global_mesh[cell_row  ][cell_col+1]
                 self.gridCell[cell_row][cell_col].set_corners(v1, v2, v3, v4)
-
-        # transform pixel
-        self.container = np.zeros_like(self.img)
-        for row in range(self.margin, self.margin+self.rows):
-            for col in range(self.margin, self.margin+self.cols):
-                p = np.array([col, row, 1])
-                p_prime = np.dot(H, p).round().astype('int')[:-1][::-1]
-                self.container[p_prime[0]][p_prime[1]] = self.img[row][col]
-
-        self.img = np.array(self.container)
-        del self.container
+                self.gridCell[cell_row][cell_col].cal_boundary()
 
     def map_texture(self, image):
         print ('computing transform coefficients and mapping texture')
         self.result_img = np.zeros_like(self.img)
         for cell_row in range(self.g_height):
             for cell_col in range(self.g_width):
+                self.gridCell[cell_row][cell_col].cal_boundary()
                 pixel_info = self.gridCell[cell_row][cell_col].compute_pixel_transform_coeff(self.margin)
                 vertices = np.array(list(map(np.array, self.gridCell[cell_row][cell_col].original_v)))
                 for pos, coeff in pixel_info:
                     coeff = np.array(coeff)
                     coeff.resize((1, 4))
                     oldPos = np.dot(coeff, vertices).reshape(-1)
-                    if oldPos[0] == self.rows: oldPos[0] -= 1
-                    if oldPos[1] == self.cols: oldPos[1] -= 1
 
                     # safety procedure
                     if self.margin <= oldPos[0] and oldPos[0] < self.rows+self.margin and self.margin <= oldPos[1] and oldPos[1] < self.cols+self.margin:
@@ -114,25 +104,33 @@ class Grid():
             for i in range(self.g_width):
                 cv2.line(black,
                          (self.mesh[row][i][1], self.mesh[row][i][0]),
-                         (self.mesh[row][i+1][1], self.mesh[row][i+1][0]), (255,255,255), 2, 1)
+                         (self.mesh[row][i+1][1], self.mesh[row][i+1][0]), (255,255,255), 1, 1)
+                cv2.line(black,
+                         (self.global_mesh[row][i][1], self.global_mesh[row][i][0]),
+                         (self.global_mesh[row][i+1][1], self.global_mesh[row][i+1][0]), (255,255,0), 1, 1)
                 cv2.line(black,
                          (self.warpped_mesh[row][i][1], self.warpped_mesh[row][i][0]),
-                         (self.warpped_mesh[row][i+1][1], self.warpped_mesh[row][i+1][0]), (0,255,0), 2, 1)
+                         (self.warpped_mesh[row][i+1][1], self.warpped_mesh[row][i+1][0]), (0,0,255), 1, 1)
 
         for col in range(self.g_width+1):
             for i in range(self.g_height):
                 cv2.line(black,
                          (self.mesh[i][col][1], self.mesh[i][col][0]),
-                         (self.mesh[i+1][col][1], self.mesh[i+1][col][0]), (255,255,255), 2, 1)
+                         (self.mesh[i+1][col][1], self.mesh[i+1][col][0]), (255,255,255), 1, 1)
+                cv2.line(black,
+                         (self.global_mesh[i][col][1], self.global_mesh[i][col][0]),
+                         (self.global_mesh[i+1][col][1], self.global_mesh[i+1][col][0]), (255,255,0), 1, 1)
                 cv2.line(black,
                          (self.warpped_mesh[i][col][1], self.warpped_mesh[i][col][0]),
-                         (self.warpped_mesh[i+1][col][1], self.warpped_mesh[i+1][col][0]), (0,255,0), 2, 1)
+                         (self.warpped_mesh[i+1][col][1], self.warpped_mesh[i+1][col][0]), (0,0,255), 1, 1)
 
         if feature is not None:
             for feat in feature:
-                cv2.drawMarker(black, (feat.col, feat.row), (255,255,255), cv2.MARKER_CROSS, 5, 2)
-                cv2.drawMarker(black, (feat.dest_col, feat.dest_row), (0,255,0), cv2.MARKER_CROSS, 2, 1)
-                cv2.arrowedLine(black, (feat.col, feat.row), (feat.dest_col, feat.dest_row), (0,0,255), 1, tipLength=0.3)
+                cv2.drawMarker(black, (feat.col, feat.row), (255,255,255), cv2.MARKER_CROSS, 2, 1)
+                cv2.drawMarker(black, (feat.dest_col, feat.dest_row), (0,0,255), cv2.MARKER_CROSS, 2, 1)
+                cv2.drawMarker(black, (feat.global_col, feat.global_row), (255,255,0), cv2.MARKER_CROSS, 2, 1)
+                cv2.arrowedLine(black, (feat.col, feat.row), (feat.global_col, feat.global_row), (255,255,0), 1, tipLength=0.1)
+                cv2.arrowedLine(black, (feat.global_col, feat.global_row), (feat.dest_col, feat.dest_row), (0,0,255), 1, tipLength=0.1)
 
         if show:
             cv2.namedWindow(name, flags=cv2.WINDOW_NORMAL)
@@ -141,6 +139,11 @@ class Grid():
             cv2.waitKey(0)
             cv2.destroyAllWindows()
         if save: cv2.imwrite(os.path.join('grid', image), black)
+
+    def compute_u_v(self):
+        for cell_row in range(self.g_height):
+            for cell_col in range(self.g_width):
+                self.gridCell[cell_row][cell_col].compute_u_v()
 
     def get_grid_height(self, grid_height):
         return self.closest_factor(self.rows, grid_height)

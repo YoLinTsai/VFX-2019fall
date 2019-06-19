@@ -58,3 +58,8 @@ class FeatInfo():
     def set_dest(self, row, col):
         self.dest_row = row
         self.dest_col = col
+
+    def set_global(self, row, col):
+        self.global_row = row
+        self.global_col = col
+        self.global_pos = (row, col)
