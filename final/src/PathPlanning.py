@@ -239,13 +239,13 @@ def main(args):
 
 	cv2.imwrite('../mretarget_0007.jpg', img)
 	'''
-	
+
 	for frameIter in range(len(all_feature_GT)):
 		predict_coord = []
 		for i in range(len(all_feature_3D[frameIter])):
 			homocoord = np.append(np.array(all_feature_3D[frameIter][i]), [1])
 			predict = np.dot(camera_f_data[frameIter], np.dot(smooth_camera_rotation_data[frameIter], np.dot(smooth_camer_t_data[frameIter], homocoord))) 
-			predict_coord.append([int(predict[0]/predict[2]+0.5*(640-1)), int(predict[1]/predict[2]+0.5*(360-1))])
+			predict_coord.append([int(predict[0]/predict[2]+0.5*(1280-1)), int(predict[1]/predict[2]+0.5*(720-1))])
 
 		fn = os.path.join(args.warping_coord_dir, '{0:04}.txt'.format(frameIter+1))
 		with open(fn, 'w') as feature_f:
