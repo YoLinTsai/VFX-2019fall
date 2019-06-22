@@ -41,7 +41,7 @@ class Cell():
 
     def compute_coeff(self, pixel):
         return self.cal_coeff(pixel[0], pixel[1])
-    
+
     def compute_pixel_transform_coeff(self, margin):
         def inside(row, col):
             center_row, center_col = row + 0.5, col + 0.5
@@ -140,11 +140,6 @@ class Cell():
         self.a[3] = (self.v4[0] - self.v1[0]) / (self.v4[1] - self.v1[1]); self.b[3] = self.v4[0] - self.a[3]*self.v4[1]
 
     def cal_coeff(self, row, col):
-        '''
-        def area(x, y):
-            result = 0.5 * np.array(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
-            return abs(result)
-        '''
         def area(a, b, c, d):
             ret = 0.5 * ( (b[0] - a[0])*(c[1] - a[1]) - (c[0] - a[0])*(b[1] - a[1]) )
             ret += 0.5 * ( (b[0] - d[0])*(c[1] - d[1]) - (c[0] - d[0])*(b[1] - d[1]) )

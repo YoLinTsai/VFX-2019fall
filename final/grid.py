@@ -6,7 +6,7 @@ from cell import Cell
 class Grid():
     def __init__(self, img, grid_height, grid_width, margin):
         original = cv2.imread(img)                           # original image
-        original = cv2.resize(original, (640, 360))
+        # original = cv2.resize(original, (640, 360))
         self.margin = margin
         self.rows = original.shape[0]                        # image height
         self.cols = original.shape[1]                        # image width
@@ -95,7 +95,7 @@ class Grid():
                 # cv2.imshow(str((cell_row, cell_col)), self.result_img)
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
-        cv2.imwrite(os.path.join('warpped', image), self.result_img)
+        cv2.imwrite(os.path.join('warpped_1280', image), self.result_img)
 
     def show_grid(self, name='Grid', feature=None, show=True, save=True, image=None):
         # draw horizontal line
@@ -138,7 +138,7 @@ class Grid():
             print ('press any key to close window')
             cv2.waitKey(0)
             cv2.destroyAllWindows()
-        if save: cv2.imwrite(os.path.join('grid', image), black)
+        if save: cv2.imwrite(os.path.join('grid_1280', image), black)
 
     def compute_u_v(self):
         for cell_row in range(self.g_height):

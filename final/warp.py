@@ -5,7 +5,7 @@ import sys
 import cv2
 
 class Warp():
-    def __init__(self, image, feat_file, grid_height, grid_width, alpha=1, margin=80):
+    def __init__(self, image, feat_file, grid_height, grid_width, alpha=1, margin=160):
         self.alpha = alpha
         self.feat = Feature() # feature object
         self.read_feature_points(feat_file, margin)
