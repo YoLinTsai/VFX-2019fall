@@ -1,4 +1,4 @@
-from contentwarp import ContentWarp
+from warp import Warp
 from argparse import ArgumentParser
 import sys
 import os
@@ -22,7 +22,7 @@ def main():
     data = zip(image_id, feature_id)
     for image, feat in data:
         print ('Wapping image:', image[1])
-        warp = ContentWarp(image[1], feat[1], 18, 32, alpha=0.5)
+        warp = Warp(image[1], feat[1], 18, 32, alpha=0.5)
         warp.warp()
 
 

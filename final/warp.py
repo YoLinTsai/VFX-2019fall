@@ -1,26 +1,52 @@
 from grid import Grid
 from feature import Feature
 import numpy as np
+import sys
+import cv2
 
-class ContentWarp():
-    def __init__(self, image, feat_file, grid_height, grid_width, alpha=1):
+class Warp():
+    def __init__(self, image, feat_file, grid_height, grid_width, alpha=1, margin=80):
         self.alpha = alpha
         self.feat = Feature() # feature object
-        self.read_feature_points(feat_file)
-        self.grid = Grid(image, grid_height, grid_width)
+        self.read_feature_points(feat_file, margin)
+        self.grid = Grid(image, grid_height, grid_width, margin)
         self.image = image
 
-    def warp(self):
+        # the should not change after global warpping, setting this initially is easier
         self.grid.compute_salience()
-
         self.set_grid_info_to_feat()
-        self.compute_bilinear_interpolation()
 
+    def warp(self):
+        self.GlobalWarp()
+        self.ContentWarp()
+
+    def GlobalWarp(self):
+        # find the homography by RANSAC
+        src = np.zeros((self.feat.size(), 2))
+        dest = np.zeros((self.feat.size(), 2))
+        for i, feat_info in enumerate(self.feat.feat):
+            src[i][0] = feat_info.col
+            src[i][1] = feat_info.row
+            dest[i][0] = feat_info.dest_col
+            dest[i][1] = feat_info.dest_row
+        H, _ = cv2.findHomography(src, dest, cv2.RANSAC, 5.0)
+        
+        # apply global transform
+        self.grid.GlobalWarp(H)
+
+        # features need to be transformed as well
+        for i, feat_info in enumerate(self.feat.feat):
+            p = np.array([feat_info.col, feat_info.row, 1])
+            p_prime = np.dot(H, p)[:-1].round().astype('int')
+            self.feat.feat[i].set_global(p_prime[1], p_prime[0])
+
+    def ContentWarp(self):
+        self.compute_bilinear_interpolation()
+        self.grid.compute_u_v()
         self.build_linear_system_and_solve()
         self.image = self.image.split('/')[-1]
         self.grid.show_grid('after transform', self.feat.feat, show=False, save=True, image=self.image)
         self.map_texture(self.image)
-
 
     def build_linear_system_and_solve(self):
         '''
@@ -41,20 +67,15 @@ class ContentWarp():
         mesh_map = dict() # the map from mesh coordinates to Xi
 
         # construct map
-        true = list()
         map_id = 0 # if x[i] x[i+1] would be the row and col respectively for every even i
-        for row in range(self.grid.mesh.shape[0]):
-            for col in range(self.grid.mesh.shape[1]):
+        for row in range(self.grid.global_mesh.shape[0]):
+            for col in range(self.grid.global_mesh.shape[1]):
                 v_map[map_id] = (row, col)
                 mesh_map[(row, col)] = map_id
                 map_id += 2
-                true.append(self.grid.mesh[row][col][0])
-                true.append(self.grid.mesh[row][col][1])
-        true = np.array(true, dtype=np.float32).reshape((-1, 1))
 
         # build Data Term
         # build Simularity Transform Term
-        # temporarily set the new feature points to row, col
         A_simularity = np.zeros((self.grid.count()*16, 2*len(v_map)))
         B_simularity = np.zeros((self.grid.count()*16, 1))
         A_data = np.zeros((2*self.feat.size(), 2*len(v_map)))
@@ -229,24 +250,6 @@ class ContentWarp():
         A = np.vstack((A_data, A_simularity[1:]))
         B = np.vstack((B_data, B_simularity[1:]))
 
-        '''
-        due to the fact that during testing the system is very likely to be under-determined,
-        these two terms are added to set the upper left vertex to (0, 0) in order to verfiy
-        the correctness of the implementation
-        (a feature that belongs the the grid[0][0] must be specified in feat.txt)
-        constraint_A = np.zeros((2, A.shape[1]))
-        constraint_A[0][0] = 1
-        constraint_A[1][1] = 1
-        constraint_B = np.zeros((2, 1))
-        constraint_B[0][0] = 0
-        constraint_B[1][0] = 0
-        A = np.vstack((A, constraint_A))
-        B = np.vstack((B, constraint_B))
-        '''
-
-        print ('A shape', A.shape)
-        print ('B shape', B.shape)
-
         rank_A = np.linalg.matrix_rank(A)
         if rank_A < A.shape[1]:
             print ('linear system is underdetermined!')
@@ -264,22 +267,10 @@ class ContentWarp():
         X = np.array([ round(x) for x in X.reshape(-1) ]).reshape((-1, 1))
 
         # apply the result
-        min_row = 10000000
-        min_col = 10000000
         for i in range(X.shape[0]):
             if i % 2 != 0: continue
             mesh_row, mesh_col = v_map[i]
             self.grid.warpped_mesh[mesh_row][mesh_col] = np.array([X[i][0], X[i+1][0]])
-            if X[i][0] < min_row: min_row = X[i][0]
-            if X[i+1][0] < min_col: min_col = X[i+1][0]
-
-        # shift the warpped_mesh to the correct scale, disable for now
-        '''
-        offset = np.array([min_row, min_col]).astype('int64')
-        for row in range(self.grid.warpped_mesh.shape[0]):
-            for col in range(self.grid.warpped_mesh.shape[1]):
-                self.grid.warpped_mesh[row][col] -= offset
-        '''
 
         for cell_row in range(self.grid.g_height):
             for cell_col in range(self.grid.g_width):
@@ -289,20 +280,6 @@ class ContentWarp():
                 v4 = self.grid.warpped_mesh[cell_row  ][cell_col+1]
                 self.grid.gridCell[cell_row][cell_col].set_corners(v1, v2, v3, v4)
         return
-        '''
-        import multiprocessing as mp
-        def job(a, b):
-            for row in range(a, b):
-                for col in range(self.grid.warpped_mesh.shape[1]):
-                    self.grid.warpped_mesh[row][col] -= offset
-        jobs = []
-        jobs.append(mp.Process(target=job, args=(0, self.grid.warpped_mesh.shape[0]//4*1)))
-        jobs.append(mp.Process(target=job, args=(self.grid.warpped_mesh.shape[0]//4*1, self.grid.warpped_mesh.shape[0]//4*2)))
-        jobs.append(mp.Process(target=job, args=(self.grid.warpped_mesh.shape[0]//4*2, self.grid.warpped_mesh.shape[0]//4*3)))
-        jobs.append(mp.Process(target=job, args=(self.grid.warpped_mesh.shape[0]//4*3, self.grid.warpped_mesh.shape[0])))
-        for j in jobs: j.start()
-        for j in jobs: j.join()
-        '''
 
     def map_texture(self, image):
         self.grid.map_texture(image)
@@ -310,10 +287,10 @@ class ContentWarp():
     def compute_bilinear_interpolation(self):
         for i, feat_info in enumerate(self.feat.feat):
             corresponding_cell = self.grid.gridCell[feat_info.grid_pos[0]][feat_info.grid_pos[1]]
-            self.feat.set_coefficients(i, corresponding_cell.compute_coeff(feat_info.pos))
+            self.feat.set_coefficients(i, corresponding_cell.compute_coeff(feat_info.global_pos))
 
-    def read_feature_points(self, filename):
-        self.feat.read(filename)
+    def read_feature_points(self, filename, margin):
+        self.feat.read(filename, margin)
 
     def set_grid_info_to_feat(self):
         for i, feat_info in enumerate(self.feat.feat):
