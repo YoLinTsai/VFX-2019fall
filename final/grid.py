@@ -1,5 +1,6 @@
 import cv2
 import os
+import math
 import numpy as np
 from cell import Cell
 
@@ -87,11 +88,11 @@ class Grid():
                     coeff = np.array(coeff)
                     coeff.resize((1, 4))
                     oldPos = np.dot(coeff, vertices).reshape(-1)
-                    p0 = int(oldPos[0])
-                    p1 = int(oldPos[1])
+                    p0 = int(round(oldPos[0]))
+                    p1 = int(round(oldPos[1]))
 
                     # safety procedure
-                    if 0 <= p0 and p0 < self.rows+self.margin and 0 <= p1 and p1 < self.cols+self.margin:
+                    if 0 <= p0 and p0 < self.img.shape[0] and 0 <= p1 and p1 < self.img.shape[1]:
                         self.result_img[pos[0]][pos[1]] = self.img[p0][p1]
                     else:
                         print ('invalid values for oldPos', [p0, p1])
