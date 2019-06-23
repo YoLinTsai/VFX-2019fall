@@ -83,15 +83,18 @@ class Grid():
                 pixel_info = self.gridCell[cell_row][cell_col].compute_pixel_transform_coeff(self.margin)
                 vertices = np.array(list(map(np.array, self.gridCell[cell_row][cell_col].original_v)))
                 for pos, coeff in pixel_info:
+                    if pos[0] >= self.result_img.shape[0] or pos[1] >= self.result_img.shape[1]: continue
                     coeff = np.array(coeff)
                     coeff.resize((1, 4))
                     oldPos = np.dot(coeff, vertices).reshape(-1)
+                    p0 = int(oldPos[0])
+                    p1 = int(oldPos[1])
 
                     # safety procedure
-                    # if self.margin <= oldPos[0] and oldPos[0] < self.rows+self.margin and self.margin <= oldPos[1] and oldPos[1] < self.cols+self.margin:
-                    self.result_img[pos[0]][pos[1]] = self.img[int(oldPos[0])][int(oldPos[1])]
-                    # else:
-                        # print ('invalid values for oldPos', oldPos)
+                    if 0 <= p0 and p0 < self.rows+self.margin and 0 <= p1 and p1 < self.cols+self.margin:
+                        self.result_img[pos[0]][pos[1]] = self.img[p0][p1]
+                    else:
+                        print ('invalid values for oldPos', [p0, p1])
                 # cv2.imshow(str((cell_row, cell_col)), self.result_img)
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
