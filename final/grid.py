@@ -5,7 +5,9 @@ import numpy as np
 from cell import Cell
 
 class Grid():
-    def __init__(self, img, grid_height, grid_width, margin):
+    def __init__(self, img, grid_height, grid_width, margin, grid_dir, warp_dir):
+        self.grid_dir = grid_dir
+        self.warp_dir = warp_dir
         original = cv2.imread(img)                           # original image
         # original = cv2.resize(original, (640, 360))
         self.margin = margin
@@ -99,7 +101,7 @@ class Grid():
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
         print ('')
-        cv2.imwrite(os.path.join('warpped_walk_1280', image), self.result_img)
+        cv2.imwrite(os.path.join(self.warp_dir, image), self.result_img)
 
     def show_grid(self, name='Grid', feature=None, show=True, save=True, image=None):
         # draw horizontal line
@@ -142,7 +144,7 @@ class Grid():
             print ('press any key to close window')
             cv2.waitKey(0)
             cv2.destroyAllWindows()
-        if save: cv2.imwrite(os.path.join('grid_walk_1280', image), black)
+        if save: cv2.imwrite(os.path.join(self.grid_dir, image), black)
 
     def compute_u_v(self):
         for cell_row in range(self.g_height):

@@ -8,6 +8,8 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('--image_dir', required=True)
     parser.add_argument('--feature_dir', required=True)
+    parser.add_argument('--grid_dir', required=True)
+    parser.add_argument('--warp_dir', required=True)
     args = parser.parse_args()
 
     images   = os.listdir(args.image_dir)
@@ -21,8 +23,9 @@ def main():
 
     data = zip(image_id, feature_id)
     for image, feat in data:
+        # if image[0] != 19: continue
         print ('Processing image:', image[1])
-        warp = Warp(image[1], feat[1], 18, 32, alpha=20)
+        warp = Warp(image[1], feat[1], 18, 32, args.grid_dir, args.warp_dir, alpha=20)
         warp.warp()
         print ('')
 

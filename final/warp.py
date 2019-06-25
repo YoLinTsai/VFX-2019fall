@@ -5,11 +5,11 @@ import sys
 import cv2
 
 class Warp():
-    def __init__(self, image, feat_file, grid_height, grid_width, alpha=1, margin=200):
+    def __init__(self, image, feat_file, grid_height, grid_width, grid_dir, warp_dir, alpha=1, margin=200):
         self.alpha = alpha
         self.feat = Feature() # feature object
         self.read_feature_points(feat_file, margin)
-        self.grid = Grid(image, grid_height, grid_width, margin)
+        self.grid = Grid(image, grid_height, grid_width, margin, grid_dir, warp_dir)
         self.image = image
 
         # the should not change after global warpping, setting this initially is easier
