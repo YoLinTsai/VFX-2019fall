@@ -19,6 +19,9 @@ class Feature():
                 #[row, col, temporal coherence coeff, bilinear interpolation coefficients, cooresponding gridCell position]
                 self.feat.append(FeatInfo(round(float(line[1]))+margin, round(float(line[2]))+margin, float(line[3]), None, None))
                 self.feat[-1].set_dest(round(float(line[4]))+margin, round(float(line[5]))+margin)
+                if self.feat[-1].illegal():
+                    print ('removing feature ->', self.feat[-1])
+                    del self.feat[-1]
 
     def add_noise(self):
         for i in range(len(self.feat)):
@@ -63,3 +66,19 @@ class FeatInfo():
         self.global_row = row
         self.global_col = col
         self.global_pos = (row, col)
+
+    def illegal(self):
+        if self.dest_row >= 720+200: return True
+        if self.dest_row < 200: return True
+        if self.dest_col >= 1280+200: return True
+        if self.dest_col < 200: return True
+
+    def __str__(self):
+        message = ""
+        message += "row:{:4d}".format(self.row)
+        message += " col:{:4d} ".format(self.col)
+        message += " d_row:{:4d}".format(self.dest_row)
+        message += " d_col:{:4d} ".format(self.dest_col)
+        message += " coeff: " + str(self.interpolation_coeff)
+        message += " gridCell: " + str(self.grid_pos)
+        return message

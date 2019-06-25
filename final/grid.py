@@ -37,9 +37,9 @@ class Grid():
         self.warpped_mesh = np.array(self.mesh)
         self.global_mesh = np.array(self.mesh)
 
-        print ("image size:", self.rows, self.cols)
-        print ("grid  size:", self.g_height, self.g_width)
-        print ("cell  size:", self.cell_height, self.cell_width)
+        # print ("image size:", self.rows, self.cols)
+        # print ("grid  size:", self.g_height, self.g_width)
+        # print ("cell  size:", self.cell_height, self.cell_width)
 
     def count(self):
         return self.g_width*self.g_height
@@ -62,7 +62,9 @@ class Grid():
         for mesh_row in range(self.global_mesh.shape[0]):
             for mesh_col in range(self.global_mesh.shape[1]):
                 p = np.array([self.global_mesh[mesh_row][mesh_col][1], self.global_mesh[mesh_row][mesh_col][0], 1])
-                p_prime = np.dot(H, p)[:-1]
+                p_prime = np.dot(H, p)
+                p_prime /= p_prime[-1]
+                p_prime = p_prime[:-1]
                 self.global_mesh[mesh_row][mesh_col] = p_prime[::-1]
 
         # update grid vertices
@@ -76,30 +78,28 @@ class Grid():
                 self.gridCell[cell_row][cell_col].cal_boundary()
 
     def map_texture(self, image):
-        print ('computing transform coefficients and mapping texture')
         self.result_img = np.zeros_like(self.img)
         for cell_row in range(self.g_height):
+            print ('\rcomputing transform coefficients and mapping texture {:.0f}%'.format((cell_row+1)/(self.g_height)*100), end='', flush=True)
             for cell_col in range(self.g_width):
                 self.gridCell[cell_row][cell_col].cal_boundary()
-                pixel_info = self.gridCell[cell_row][cell_col].compute_pixel_transform_coeff(self.margin)
-                vertices = np.array(list(map(np.array, self.gridCell[cell_row][cell_col].original_v)))
-                for pos, coeff in pixel_info:
+                pixel_info, H_grid = self.gridCell[cell_row][cell_col].compute_pixel_transform_coeff(self.margin)
+                for pos in pixel_info:
                     if pos[0] >= self.result_img.shape[0] or pos[1] >= self.result_img.shape[1]: continue
-                    coeff = np.array(coeff)
-                    coeff.resize((1, 4))
-                    oldPos = np.dot(coeff, vertices).reshape(-1)
-                    p0 = int(round(oldPos[0]))
-                    p1 = int(round(oldPos[1]))
+                    oldPos = np.dot(H_grid, np.array([pos[0], pos[1], 1])).reshape(-1)
+                    p0 = int(round(oldPos[0]/oldPos[2]))
+                    p1 = int(round(oldPos[1]/oldPos[2]))
 
                     # safety procedure
                     if 0 <= p0 and p0 < self.img.shape[0] and 0 <= p1 and p1 < self.img.shape[1]:
                         self.result_img[pos[0]][pos[1]] = self.img[p0][p1]
                     else:
                         print ('invalid values for oldPos', [p0, p1])
-                # cv2.imshow(str((cell_row, cell_col)), self.result_img)
-                # cv2.waitKey(0)
-                # cv2.destroyAllWindows()
-        cv2.imwrite(os.path.join('warpped_1280', image), self.result_img)
+            # cv2.imshow(str((cell_row, cell_col)), self.result_img)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
+        print ('')
+        cv2.imwrite(os.path.join('warpped_walk_1280', image), self.result_img)
 
     def show_grid(self, name='Grid', feature=None, show=True, save=True, image=None):
         # draw horizontal line
@@ -142,7 +142,7 @@ class Grid():
             print ('press any key to close window')
             cv2.waitKey(0)
             cv2.destroyAllWindows()
-        if save: cv2.imwrite(os.path.join('grid_1280', image), black)
+        if save: cv2.imwrite(os.path.join('grid_walk_1280', image), black)
 
     def compute_u_v(self):
         for cell_row in range(self.g_height):

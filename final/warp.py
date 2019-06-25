@@ -29,7 +29,7 @@ class Warp():
             src[i][1] = feat_info.row
             dest[i][0] = feat_info.dest_col
             dest[i][1] = feat_info.dest_row
-        H, _ = cv2.findHomography(src, dest, 0, 5.0)
+        H, _ = cv2.findHomography(src, dest, cv2.RANSAC, 5.0)
 
         # apply global transform
         self.grid.GlobalWarp(H)
@@ -40,7 +40,7 @@ class Warp():
             p_prime = np.dot(H, p)[:-1].round().astype('int')
             self.feat.feat[i].set_global(p_prime[1], p_prime[0])
 
-        print ('global warp complete')
+        print ('global warp finished. ', end='', flush=True)
 
     def ContentWarp(self):
         self.compute_bilinear_interpolation()
@@ -270,6 +270,7 @@ class Warp():
                 v3 = self.grid.warpped_mesh[cell_row+1][cell_col+1]
                 v4 = self.grid.warpped_mesh[cell_row  ][cell_col+1]
                 self.grid.gridCell[cell_row][cell_col].set_corners(v1, v2, v3, v4)
+        print ('local warp finished.')
         return
 
     def map_texture(self, image):

@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import cv2
 
 R90 = np.zeros((2, 2))
 R90[0][1] = 1
@@ -51,17 +52,49 @@ class Cell():
             if self.a[3]*center_col + self.b[3] > center_row: return False
             return True
 
-        min_row = math.floor(min([self.v1[0], self.v2[0], self.v3[0], self.v4[0]]))
-        end_row = math.ceil(max([self.v1[0], self.v2[0], self.v3[0], self.v4[0]]))
-        min_col = math.floor(min([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
-        end_col = math.ceil(max([self.v1[1], self.v2[1], self.v3[1], self.v4[1]]))
+        # print (self.v1)
+        # print (self.v2)
+        # print (self.v3)
+        # print (self.v4)
+
+        min_row = min([self.v1[0], self.v2[0], self.v3[0], self.v4[0]])
+        end_row = max([self.v1[0], self.v2[0], self.v3[0], self.v4[0]])
+        min_col = min([self.v1[1], self.v2[1], self.v3[1], self.v4[1]])
+        end_col = max([self.v1[1], self.v2[1], self.v3[1], self.v4[1]])
+
+        # print (min_row)
+        # print (end_row)
+        # print (min_col)
+        # print (end_col)
+        # check = np.zeros((end_row, end_col, 3))
 
         info = list()
         for r in range(min_row, end_row):
+            shit = list()
             for c in range(min_col, end_col):
                 if inside(r, c):
-                    info.append(((r,c), self.cal_coeff(r,c)))
-        return info
+                    info.append((r,c))
+                    # info.append(((r,c), self.cal_coeff(r,c)))
+                    # check[r][c] = (255, 255, 255)
+
+        # cv2.imshow("check", check)
+        # cv2.waitKey(0)
+        # sys.exit()
+        # src = np.array([self.v1, (self.v2[0]-1, self.v2[1]), (self.v3[0]-1, self.v3[1]-1), (self.v4[0], self.v4[1])])
+        # the points here isn't enough
+        # TODO
+        # src = np.array([self.v1, (self.v2[0]-1, self.v2[1]), (self.v3[0]-1, self.v3[1]-1), (self.v4[0], self.v4[1]), ((self.v2[0]+self.v3[0])//2, (self.v2[1]+self.v3[1])//2), ((self.v1[0]+self.v4[0])//2, (self.v1[1]+self.v4[1])//2), ((self.v1[0]+self.v2[0])//2, (self.v1[1]+self.v2[1])//2), ((self.v3[0]+self.v4[0])//2, (self.v3[1]+self.v4[1])//2)])
+        src = np.array([self.v1, (self.v2[0]-1, self.v2[1]), (self.v3[0]-1, self.v3[1]-1), (self.v4[0], self.v4[1]-1)])
+        vv1, vv2, vv3, vv4 = self.original_v
+        dst = np.array([vv1, (vv2[0]-1, vv2[1]), (vv3[0]-1, vv3[1]-1), (vv4[0], vv4[1]-1)])
+        # dst = np.array([vv1, (vv2[0]-1, vv2[1]), (vv3[0]-1, vv3[1]-1), (vv4[0], vv4[1]-1), ((vv2[0]+vv3[0])//2, (vv2[1]+vv3[1])//2), ((vv1[0]+vv4[0])//2, (vv1[1]+vv4[1])//2), ((vv1[0]+vv2[0])//2, (vv1[1]+vv2[1])//2), ((vv3[0]+vv4[0])//2, (vv3[1]+vv4[1])//2)])
+        H, g = cv2.findHomography(src, dst, cv2.RANSAC)
+        # print (np.dot(H, np.array([src[0][0], src[0][1], 1]))-np.array([dst[0][0], dst[0][1], 1]))
+        # print (np.dot(H, np.array([src[1][0], src[1][1], 1]))-np.array([dst[1][0], dst[1][1], 1]))
+        # print (np.dot(H, np.array([src[2][0], src[2][1], 1]))-np.array([dst[2][0], dst[2][1], 1]))
+        # print (np.dot(H, np.array([src[3][0], src[3][1], 1]))-np.array([dst[3][0], dst[3][1], 1]))
+        # sys.exit()
+        return info, H
 
     def compute_u_v(self):
         self.u_v = np.zeros((8, 2))
