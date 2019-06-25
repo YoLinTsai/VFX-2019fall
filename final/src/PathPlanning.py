@@ -93,13 +93,25 @@ def window_filter(euler, window_size):
 	return result
 
 def euler_linearized(data):
-	data = np.array(data)
-	_x = linear_interpolation(data[:,0])
-	_y = linear_interpolation(data[:,1])
-	_z = linear_interpolation(data[:,2])
 	result = []
+
+	data = np.array(data)
+	_x = linear_interpolation(data[0:40,0])
+	_y = linear_interpolation(data[0:40,1])
+	_z = linear_interpolation(data[0:40,2])
 	for i in range(len(_x)):
 		result.append([_x[i], _y[i], _z[i]])
+	_x = linear_interpolation(data[40:170,0])
+	_y = linear_interpolation(data[40:170,1])
+	_z = linear_interpolation(data[40:170,2])
+	for i in range(len(_x)):
+		result.append([_x[i], _y[i], _z[i]])
+	_x = linear_interpolation(data[170:,0])
+	_y = linear_interpolation(data[170:,1])
+	_z = linear_interpolation(data[170:,2])
+	for i in range(len(_x)):
+		result.append([_x[i], _y[i], _z[i]])
+
 	return np.array(result)
 
 def main(args):
@@ -154,15 +166,16 @@ def main(args):
 	fs = 30.0	# sample rate, Hz
 	cutoff = 3.667
 
-	'''
+
 	_x = butter_lowpass_filter(Camera_3D_data[:,0], cutoff, fs, order)
 	_y = butter_lowpass_filter(Camera_3D_data[:,1], cutoff, fs, order)
 	_z = butter_lowpass_filter(Camera_3D_data[:,2], cutoff, fs, order)
-	'''
 
+	'''
 	_x = linear_interpolation(Camera_3D_data[:,0])
 	_y = linear_interpolation(Camera_3D_data[:,1])
 	_z = linear_interpolation(Camera_3D_data[:,2])
+	'''
 	
 	smooth_camer_t_data = []
 	for i in range(len(_x)):
