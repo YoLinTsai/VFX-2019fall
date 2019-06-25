@@ -23,7 +23,6 @@ def main():
 
     data = zip(image_id, feature_id)
     for image, feat in data:
-        # if image[0] != 19: continue
         print ('Processing image:', image[1])
         warp = Warp(image[1], feat[1], 18, 32, args.grid_dir, args.warp_dir, alpha=20)
         warp.warp()

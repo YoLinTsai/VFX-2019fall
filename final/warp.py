@@ -21,7 +21,7 @@ class Warp():
         self.ContentWarp()
 
     def GlobalWarp(self):
-        # find the homography by RANSAC
+        # find the homography
         src = np.zeros((self.feat.size(), 2))
         dest = np.zeros((self.feat.size(), 2))
         for i, feat_info in enumerate(self.feat.feat):
@@ -29,7 +29,7 @@ class Warp():
             src[i][1] = feat_info.row
             dest[i][0] = feat_info.dest_col
             dest[i][1] = feat_info.dest_row
-        H, _ = cv2.findHomography(src, dest, cv2.RANSAC, 5.0)
+        H, _ = cv2.findHomography(src, dest, cv2.RANSAC)
 
         # apply global transform
         self.grid.GlobalWarp(H)
@@ -37,7 +37,9 @@ class Warp():
         # features need to be transformed as well
         for i, feat_info in enumerate(self.feat.feat):
             p = np.array([feat_info.col, feat_info.row, 1])
-            p_prime = np.dot(H, p)[:-1].round().astype('int')
+            p_prime = np.dot(H, p)
+            p_prime /= p_prime[-1]
+            p_prime = p_prime[:-1].round().astype('int')
             self.feat.feat[i].set_global(p_prime[1], p_prime[0])
 
         print ('global warp finished. ', end='', flush=True)
