@@ -154,7 +154,7 @@ def main(args):
 
 	order = 6
 	fs = 30.0	# sample rate, Hz
-	cutoff = 3.667
+	cutoff = 2.5
 
 
 	_x = butter_lowpass_filter(Camera_3D_data[:,0], cutoff, fs, order)
