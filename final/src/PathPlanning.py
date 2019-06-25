@@ -96,19 +96,9 @@ def euler_linearized(data):
 	result = []
 
 	data = np.array(data)
-	_x = linear_interpolation(data[0:40,0])
-	_y = linear_interpolation(data[0:40,1])
-	_z = linear_interpolation(data[0:40,2])
-	for i in range(len(_x)):
-		result.append([_x[i], _y[i], _z[i]])
-	_x = linear_interpolation(data[40:170,0])
-	_y = linear_interpolation(data[40:170,1])
-	_z = linear_interpolation(data[40:170,2])
-	for i in range(len(_x)):
-		result.append([_x[i], _y[i], _z[i]])
-	_x = linear_interpolation(data[170:,0])
-	_y = linear_interpolation(data[170:,1])
-	_z = linear_interpolation(data[170:,2])
+	_x = linear_interpolation(data[:,0])
+	_y = linear_interpolation(data[:,1])
+	_z = linear_interpolation(data[:,2])
 	for i in range(len(_x)):
 		result.append([_x[i], _y[i], _z[i]])
 
@@ -176,7 +166,7 @@ def main(args):
 	_y = linear_interpolation(Camera_3D_data[:,1])
 	_z = linear_interpolation(Camera_3D_data[:,2])
 	'''
-	
+
 	smooth_camer_t_data = []
 	for i in range(len(_x)):
 		t = np.zeros(shape=(3,4)) 

@@ -22,11 +22,11 @@
 # Directories #
 /final/paper/*
 /final/img/*
-/final/pnt/*
 /final/jpg/*
 /final/blender/*
 /final/jpg_1280/*
-/final/pnt_1280/*
+/final/ball/pnt_1280/*
+/final/ball/pnt/*
 *grid/
 *warpped/
 *0.5jpg/
